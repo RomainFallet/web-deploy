@@ -1,0 +1,12 @@
+name: Test deploy env install script
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-deploy-ubuntu:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Test deploy environment install on Ubuntu
+        run: bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
