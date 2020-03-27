@@ -100,7 +100,7 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/sy
 [Back to top ↑](#table-of-contents)
 
 ```bash
-# Ask email if not already set for it (copy and paste all stuffs between "if" and "fi" in your terminal)
+# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
 if [[ -z "${email}" ]]; then
     read -r -p "Enter your email (needed to set up email monitoring): " email
 fi
@@ -343,6 +343,9 @@ Then, adjust these PHP settings:
 # Get path to PHP config file
 phpinipath=$(php -r "echo php_ini_loaded_file();")
 
+# Disable functions that can causes security breaches
+sudo sed -i'.tmp' -e 's/disable_functions =/disable_functions = error_reporting,ini_set,exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source/g' "${phpinipath}"
+
 # Hide errors (can cause security issues)
 sudo sed -i'.tmp' -e 's/display_errors = On/display_errors = Off/g' "${phpinipath}"
 sudo sed -i'.tmp' -e 's/display_startup_errors = On/display_startup_errors = Off/g' "${phpinipath}"
@@ -357,4 +360,99 @@ sudo phpdismod xdebug
 # Apply PHP configuration to Apache
 sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
 sudo mv "${phpinipath}" /etc/php/7.3/apache2/php.ini
+```
+
+### Set up variables for PHP/Symfony app deployment
+
+We need to configure some variables in order to reduce repetitions/replacements in the next commands.
+
+```bash
+# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${email}" ]]; then
+    read -r -p "Enter your email (needed to set up email monitoring): " email
+fi
+
+# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appname}" ]]; then
+    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
+fi
+
+# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appdomain}" ]]; then
+    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
+fi
+
+# Ask repository URL if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${apprepositoryurl}" ]]; then
+    read -p "Enter the Git repository URL of your app: " apprepositoryurl
+fi
+```
+
+### Deploy the app
+
+```bash
+# Clone app repository
+git clone "${apprepositoryurl}" "/var/www/${appname}"
+
+# Go inside the app directory
+cd "/var/www/${appname}"
+```
+
+## Set up the database and the production mode
+
+```bash
+# Generate a random password for the new mysql user
+mysqlpassword=$(openssl rand -hex 15)
+
+# Create database and related user for the app and grant permissions (copy and paste all stuffs from "sudo mysql" to "EOF" in your terminal)
+sudo mysql <<EOF
+CREATE DATABASE ${appname};
+CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;
+EOF
+
+# Create .env.local file
+sudo cp ./.env ./.env.local
+
+# Set APP_ENV to "prod"
+sudo sed -i'.tmp' -e 's/APP_ENV=dev/APP_ENV=prod/g' ./.env.local
+
+# Set mysql credentials
+sudo sed -i'.tmp' -e 's,DATABASE_URL=mysql://db_user:db_password@127.0.0.1:3306/db_name,DATABASE_URL=mysql://'"${appname}"':'"${mysqlpassword}"'@127.0.0.1:3306/'"${appname}"',g' ./.env.local
+
+# Remove temporary file
+sudo rm ./.env.local.tmp
+```
+
+## Set permissions
+
+```bash
+# Set ownership to Apache
+sudo chown -R www-data:www-data "/var/www/${appname}"
+
+# Set files permissions to 644
+sudo find "/var/www/${appname}" -type f -exec chmod 644 {} \;
+
+# Set folders permissions to 755
+sudo find "/var/www/${appname}" -type d -exec chmod 755 {} \;
+```
+
+## Install dependencies and build assets
+
+```bash
+# Install PHP dependencies
+composer install
+
+# Install JS dependencies if package.json is found
+if [[ -f "./package.json" ]]; then yarn install; fi
+
+# Build assets if build script is found
+if grep '"build":' ./package.json; then yarn build; fi
+```
+
+## Execute database migrations
+
+```bash
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate -n
 ```
