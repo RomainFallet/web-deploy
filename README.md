@@ -138,7 +138,7 @@ sudo sed -i'.backup' -e 's,APT::Periodic::Download-Upgradeable-Packages "0";,APT
 
 # Clean apt cache every week
 sudo sed -i'.backup' -e 's,APT::Periodic::AutocleanInterval "0";,APT::Periodic::AutocleanInterval "7";,g' /etc/apt/apt.conf.d/10periodic
-sudo rm 10periodic.backup
+sudo rm /etc/apt/apt.conf.d/10periodic.backup
 
 # Enable automatic updates once downloaded
 sudo sed -i'.backup' -e 's,//\s"${distro_id}:${distro_codename}-updates";,        "${distro_id}:${distro_codename}-updates";,g' /etc/apt/apt.conf.d/50unattended-upgrades
@@ -160,7 +160,7 @@ sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Automatic-Reboot "false";,Unatt
 
 # Set reboot time to 3 AM
 sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Automatic-Reboot-Time "02:00";,Unattended-Upgrade::Automatic-Reboot-Time "03:00";,g' /etc/apt/apt.conf.d/50unattended-upgrades
-sudo rm 50unattended-upgrades.backup
+sudo rm /etc/apt/apt.conf.d/50unattended-upgrades.backup
 ```
 
 ### Postfix
