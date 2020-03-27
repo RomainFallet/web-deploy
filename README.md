@@ -13,7 +13,7 @@ The goal is to provide an opinionated, fully tested environment, that just work.
   * [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
   * [Configure an SSH key](#-configure-an-ssh-key)
 * [Quickstart](#quickstart)
-* [Manual configuration](#manual-configuration-deploy-environment)
+* [Manual configuration](#manual-configuration)
     1. [Set up variables](#set-up-variables)
     2. [SSH](#ssh)
     3. [Updates](#Updates)
@@ -22,6 +22,8 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     6. [Certbot](#certbot)
     7. [Firewall](#firewall)
     8. [Fail2ban](#fail2ban)
+* [Deploy a PHP/Symfony app](#deploy-a-phpsymfony-app)
+  * [PHP/Symfony prerequisites](#phpsymfony-prerequisites)
 
 ## Important notice
 
@@ -91,7 +93,7 @@ ssh <username>@<ipAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee ~/.ssh/authori
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
 ```
 
-## Manual configuration: deploy environment
+## Manual configuration
 
 ### Set up variables
 
@@ -109,6 +111,8 @@ fi
 [Back to top ↑](#table-of-contents)
 
 We will disable SSH password authentication, this will prevent all non authorized computers from being able to access the machine through SSH.
+
+**You must have completed the [Configure an SSH Key](#configure-an-ssh-key) section before completing these steps or you will loose access to your machine.**
 
 ```bash
 # Diable password authentication
@@ -133,34 +137,40 @@ Enabling automatic updates ensures that the server gets all security and softwar
 # Install latest updates
 sudo apt update && sudo apt dist-upgrade -y
 
+# Make a backup of the config files
+sudo cp /etc/apt/apt.conf.d/10periodic /etc/apt/apt.conf.d/.10periodic.backup
+sudo cp /etc/apt/apt.conf.d/50unattended-upgrades /etc/apt/apt.conf.d/.50unattended-upgrades.backup
+
 # Download updates when available
-sudo sed -i'.backup' -e 's,APT::Periodic::Download-Upgradeable-Packages "0";,APT::Periodic::Download-Upgradeable-Packages "1";,g' /etc/apt/apt.conf.d/10periodic
+sudo sed -i'.tmp' -e 's,APT::Periodic::Download-Upgradeable-Packages "0";,APT::Periodic::Download-Upgradeable-Packages "1";,g' /etc/apt/apt.conf.d/10periodic
 
 # Clean apt cache every week
-sudo sed -i'.backup' -e 's,APT::Periodic::AutocleanInterval "0";,APT::Periodic::AutocleanInterval "7";,g' /etc/apt/apt.conf.d/10periodic
-sudo rm /etc/apt/apt.conf.d/10periodic.backup
+sudo sed -i'.tmp' -e 's,APT::Periodic::AutocleanInterval "0";,APT::Periodic::AutocleanInterval "7";,g' /etc/apt/apt.conf.d/10periodic
 
 # Enable automatic updates once downloaded
-sudo sed -i'.backup' -e 's,//\s"${distro_id}:${distro_codename}-updates";,        "${distro_id}:${distro_codename}-updates";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e 's,//\s"${distro_id}:${distro_codename}-updates";,        "${distro_id}:${distro_codename}-updates";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Enable email notifications
-sudo sed -i'.backup' -e "s,//Unattended-Upgrade::Mail \"root\";,Unattended-Upgrade::Mail \"${email}\";,g" /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e "s,//Unattended-Upgrade::Mail \"root\";,Unattended-Upgrade::Mail \"${email}\";,g" /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Enable email notifications only on failures
-sudo sed -i'.backup' -e 's,//Unattended-Upgrade::MailOnlyOnError "true";,Unattended-Upgrade::MailOnlyOnError "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::MailOnlyOnError "true";,Unattended-Upgrade::MailOnlyOnError "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Remove unused kernel packages when needed
-sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Remove-Unused-Kernel-Packages "false";,Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Remove-Unused-Kernel-Packages "false";,Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Remove unused dependencies when needed
-sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Remove-Unused-Dependencies "false";,Unattended-Upgrade::Remove-Unused-Dependencies "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Remove-Unused-Dependencies "false";,Unattended-Upgrade::Remove-Unused-Dependencies "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Reboot when needed
-sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Automatic-Reboot "false";,Unattended-Upgrade::Automatic-Reboot "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Automatic-Reboot "false";,Unattended-Upgrade::Automatic-Reboot "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Set reboot time to 3 AM
-sudo sed -i'.backup' -e 's,//Unattended-Upgrade::Automatic-Reboot-Time "02:00";,Unattended-Upgrade::Automatic-Reboot-Time "03:00";,g' /etc/apt/apt.conf.d/50unattended-upgrades
-sudo rm /etc/apt/apt.conf.d/50unattended-upgrades.backup
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Automatic-Reboot-Time "02:00";,Unattended-Upgrade::Automatic-Reboot-Time "03:00";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+
+# Remove temporary files
+sudo rm /etc/apt/apt.conf.d/10periodic.tmp
+sudo rm /etc/apt/apt.conf.d/50unattended-upgrades.tmp
 ```
 
 ### Postfix
@@ -172,6 +182,9 @@ We've set up email notifications on updates errors but we need an SMTP server in
 ```bash
 # Install
 sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
+
+# Make a backup of the config file
+sudo cp /etc/aliases /etc/.aliases.backup
 
 # Forwarding System Mail to your email address
 echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
@@ -316,4 +329,32 @@ logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local >
 
 # Restart Fail2ban
 sudo service fail2ban restart
+```
+
+## Deploy a PHP/Symfony app
+
+### PHP/Symfony prerequisites
+
+First, install everything from the PHP/Symfony dev instructions kit: <https://github.com/RomainFallet/symfony-dev-ubuntu>.
+
+Then, adjust these PHP settings:
+
+```bash
+# Get path to PHP config file
+phpinipath=$(php -r "echo php_ini_loaded_file();")
+
+# Hide errors (can cause security issues)
+sudo sed -i'.tmp' -e 's/display_errors = On/display_errors = Off/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/display_startup_errors = On/display_startup_errors = Off/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/error_reporting = E_ALL/error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT/g' "${phpinipath}"
+
+# Remove temporary file
+sudo rm "${phpinipath}.tmp"
+
+# Disable Xdebug extension (can cause performance issues)
+sudo phpdismod xdebug
+
+# Apply PHP configuration to Apache
+sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
+sudo mv "${phpinipath}" /etc/php/7.3/apache2/php.ini
 ```
