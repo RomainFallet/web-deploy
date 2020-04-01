@@ -405,11 +405,9 @@ cd "/var/www/${appname}"
 mysqlpassword=$(openssl rand -hex 15)
 
 # Create database and related user for the app and grant permissions (copy and paste all stuffs from "sudo mysql" to "EOF" in your terminal)
-sudo mysql <<EOF
-CREATE DATABASE ${appname};
+sudo mysql "CREATE DATABASE ${appname};
 CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
-GRANT ALL ON ${appname}.* TO ${appname}@localhost;
-EOF
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
 
 # Create .env.local file
 sudo cp ./.env ./.env.local
