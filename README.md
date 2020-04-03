@@ -8,22 +8,22 @@ The goal is to provide an opinionated, fully tested environment, that just work.
 
 ## Table of contents
 
-* [Important notice](#important-notice)
-* [Prerequisites](#prerequisites)
-  * [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
-  * [Configure an SSH key](#-configure-an-ssh-key)
-* [Quickstart](#quickstart)
-* [Manual configuration](#manual-configuration)
-    1. [Set up variables](#set-up-variables)
-    2. [SSH](#ssh)
-    3. [Updates](#Updates)
-    4. [Postfix](#postfix)
-    5. [Apache 2](#apache-2)
-    6. [Certbot](#certbot)
-    7. [Firewall](#firewall)
-    8. [Fail2ban](#fail2ban)
-* [Deploy a PHP/Symfony app](#deploy-a-phpsymfony-app)
-  * [PHP/Symfony prerequisites](#phpsymfony-prerequisites)
+- [Important notice](#important-notice)
+- [Prerequisites](#prerequisites)
+  - [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
+  - [Configure an SSH key](#-configure-an-ssh-key)
+- [Quickstart](#quickstart)
+- [Manual configuration](#manual-configuration)
+  1. [Set up variables](#set-up-variables)
+  2. [SSH](#ssh)
+  3. [Updates](#Updates)
+  4. [Postfix](#postfix)
+  5. [Apache 2](#apache-2)
+  6. [Certbot](#certbot)
+  7. [Firewall](#firewall)
+  8. [Fail2ban](#fail2ban)
+- [Deploy a PHP/Symfony app](#deploy-a-phpsymfony-app)
+  - [PHP/Symfony prerequisites](#phpsymfony-prerequisites)
 
 ## Important notice
 
@@ -60,7 +60,7 @@ passwd -l root
 exit
 ```
 
-*SSH client is enabled by default on Windows since the 2018 April update (1804). Download the update if you have an error when using this command in PowerShell.*
+_SSH client is enabled by default on Windows since the 2018 April update (1804). Download the update if you have an error when using this command in PowerShell._
 
 ### Configure an SSH key
 
@@ -72,7 +72,7 @@ Before going any further, you need to generate an SSH key and add it to your ser
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 ```
 
-*Note: replace "your_email@example.com" by your email address.*
+_Note: replace "your_email@example.com" by your email address._
 
 Then add it to your machine by using:
 
@@ -80,7 +80,7 @@ Then add it to your machine by using:
 ssh <username>@<ipAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee ~/.ssh/authorized_keys"
 ```
 
-*Note: replace "username" and "ipAddress" by your credentials infos.*
+_Note: replace "username" and "ipAddress" by your credentials infos._
 
 **The script will disable SSH password authentication for security reasons. You must backup the generated SSH key in a safe place (for example, in a password manager app) to prevent loosing access to the machine if your computer dies.**
 
@@ -388,24 +388,24 @@ if [[ -z "${apprepositoryurl}" ]]; then
 fi
 ```
 
-### Deploy the app
+### Clone the app
 
 ```bash
 # Clone app repository
-git clone "${apprepositoryurl}" "/var/www/${appname}"
+sudo git clone "${apprepositoryurl}" "/var/www/${appname}"
 
 # Go inside the app directory
 cd "/var/www/${appname}"
 ```
 
-## Set up the database and the production mode
+### Set up the database and the production mode
 
 ```bash
 # Generate a random password for the new mysql user
 mysqlpassword=$(openssl rand -hex 15)
 
 # Create database and related user for the app and grant permissions (copy and paste all stuffs from "sudo mysql" to "EOF" in your terminal)
-sudo mysql "CREATE DATABASE ${appname};
+sudo mysql -e "CREATE DATABASE ${appname};
 CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
 GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
 
@@ -422,7 +422,7 @@ sudo sed -i'.tmp' -e 's,DATABASE_URL=mysql://db_user:db_password@127.0.0.1:3306/
 sudo rm ./.env.local.tmp
 ```
 
-## Set permissions
+### Set permissions
 
 ```bash
 # Set ownership to Apache
@@ -435,7 +435,137 @@ sudo find "/var/www/${appname}" -type f -exec chmod 644 {} \;
 sudo find "/var/www/${appname}" -type d -exec chmod 755 {} \;
 ```
 
-## Install dependencies and build assets
+### Set up the web server
+
+```bash
+# Create an Apache conf file for the app
+echo "<VirtualHost ${appdomain}:80>
+  # Set up server name
+  ServerName ${appdomain}
+
+  # Set up document root
+  DocumentRoot /var/www/${appname}/public
+</VirtualHost>" | sudo tee /etc/apache2/sites-available/${appname}.conf > /dev/null
+
+# Activate Apache conf
+sudo a2ensite "${appname}.conf"
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+```
+
+### Enabling HTTPS & configure for Symfony
+
+```bash
+# Get a new HTTPS certficate
+sudo certbot certonly --webroot -w "/var/www/${appname}/public" -d "${appdomain}" -m "${email}" -n
+
+# Check certificates renewal every month
+echo '#!/bin/bash
+certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
+sudo chmod +x /etc/cron.monthly/certbot-renew.sh
+
+# Replace existing conf
+echo "<VirtualHost ${appdomain}:80>
+    # All we need to do here is redirect to HTTPS
+    RewriteEngine on
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
+
+<VirtualHost ${appdomain}:443>
+    # Set up server name
+    ServerName ${appdomain}
+
+    # Set up server admin email
+    ServerAdmin ${email}
+
+    # Set up document root
+    DocumentRoot /var/www/${appname}/public
+    DirectoryIndex /index.php
+
+    # Set up Symfony specific configuration
+    <Directory />
+        Require all denied
+    </Directory>
+    <Directory /var/www/${appname}/public>
+        Required all granted
+        php_admin_value open_basedir '/var/www/${appname}'
+        FallbackResource /index.php
+    </Directory>
+    <Directory /var/www/${appname}/public/bundles>
+        FallbackResource disabled
+    </Directory>
+
+    # Configure separate log files
+    ErrorLog /var/log/apache2/${appname}.error.log
+    CustomLog /var/log/apache2/${appname}.access.log combined
+
+    # Configure HTTPS
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+```
+
+### Create a new SSH user for the app
+
+This user will be used to access the app.
+
+```bash
+# Generate a new password
+sshpassword=$(openssl rand -hex 15)
+
+# Encrypt the password
+sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
+
+# Create the user and set the default shell
+sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
+```
+
+### Create a chroot jail for this user
+
+Because we only want this user to access his app and nothing else.
+
+```bash
+# Create the jail
+sudo username="${appname}" use_basic_commands=n bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/chroot-jail/master/create.sh)"
+
+# Mount the app folder into the jail
+mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
+
+# Make the mount permanent
+echo "/var/www/${appname} /home/jails/${appname}/home/ ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab
+```
+
+### Display app SSH credentials
+
+```bash
+echo "##########################################
+SSH user: ${appname}
+SSH password: ${sshpassword}
+##########################################"
+
+# Clear history for security reasons
+unset HISTFILE
+history -c
+```
+
+Then, you need to init your app by following the instructions below.
+
+## Init or Update your PHP/Symfony app
+
+Login with the app SSH user and password.
+
+### Pull latest updates
+
+```bash
+cd ~/ && git pull
+```
+
+### Install dependencies and build assets
 
 ```bash
 # Install PHP dependencies
@@ -444,13 +574,13 @@ composer install
 # Install JS dependencies if package.json is found
 if [[ -f "./package.json" ]]; then yarn install; fi
 
-# Build assets if build script is found
-if grep '"build":' ./package.json; then yarn build; fi
+  # Build assets if build script is found
+if [[ -f "./package.json" ]]; then if grep '"build":' ./package.json; then yarn build; fi fi
 ```
 
-## Execute database migrations
+### Execute database migrations
 
 ```bash
-php bin/console doctrine:migrations:diff
-php bin/console doctrine:migrations:migrate -n
+sudo php bin/console doctrine:migrations:diff
+sudo php bin/console doctrine:migrations:migrate -n
 ```
