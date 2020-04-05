@@ -472,7 +472,7 @@ echo "<VirtualHost ${appdomain}:80>
 
   # Set up document root
   DocumentRoot /var/www/${appname}/public
-</VirtualHost>" | sudo tee /etc/apache2/sites-available/${appname}.conf > /dev/null
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
 
 # Activate Apache conf
 sudo a2ensite "${appname}.conf"
@@ -586,10 +586,10 @@ We simply need to copy your "~/.ssh/authorized_keys file into the chroot jail.
 
 ```bash
 # Create SSH folder in the user home
-sudo mkdir -p /home/${appname}/.ssh
+sudo mkdir -p "/home/${appname}/.ssh"
 
 # Copy the authorized_keys file
-sudo cp ~/.ssh/authorized_keys /home/${appname}/.ssh/authorized_keys
+sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
 
 # Clear history for security reasons
 unset HISTFILE
