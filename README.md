@@ -1,6 +1,6 @@
 # The web deploy instructions kit
 
-![Test deploy env install script](https://github.com/RomainFallet/web-deploy-ubuntu/workflows/Test%20deploy%20env%20install%20script/badge.svg)
+![logo-ubuntu](https://user-images.githubusercontent.com/6952638/78182032-b119d300-7465-11ea-9e00-43e3d7265f91.png)
 
 The purpose of this repository is to provide instructions to configure a web development environment on **Ubuntu 18.04 Server**.
 
@@ -13,23 +13,33 @@ The goal is to provide an opinionated, fully tested environment, that just work.
   - [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
   - [Configure an SSH key](#-configure-an-ssh-key)
 - [Quickstart](#quickstart)
-- [Manual configuration](#manual-configuration)
-  1. [Set up variables](#set-up-variables)
-  2. [SSH](#ssh)
-  3. [Updates](#Updates)
-  4. [Postfix](#postfix)
-  5. [Apache 2](#apache-2)
-  6. [Certbot](#certbot)
-  7. [Firewall](#firewall)
-  8. [Fail2ban](#fail2ban)
-- [Deploy a PHP/Symfony app](#deploy-a-phpsymfony-app)
-  - [PHP/Symfony prerequisites](#phpsymfony-prerequisites)
+- [Manual configuration: server setup](#manual-configuration-server-step)
+    1. [Set up variables](#set-up-variables)
+    2. [SSH](#ssh)
+    3. [Updates](#Updates)
+    4. [Postfix](#postfix)
+    5. [Apache 2](#apache-2)
+    6. [Certbot](#certbot)
+    7. [Firewall](#firewall)
+    8. [Fail2ban](#fail2ban)
+    9. [PHP/Symfony environment (optional)](#phpsymfony-environment-optional)
+- [Manual configuration: deploy a PHP/Symfony app](#manual-configuration-deploy-a-phpsymfony-app)
+    1. [Set up variables for PHP/Symfony app deployment](#set-up-variables-for-phpsymfony-app-deployment)
+    2. [Clone the app](#clone-the-app)
+    3. [Set up the database and the production mode](#set-up-the-database-and-the-production-mode)
+    4. [Set permissions](#set-permissions)
+    5. [Set up the web server](#set-up-the-web-server)
+    6. [Enabling HTTPS & configure for Symfony](#enabling-https--configure-for-symfony)
+    7. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
+    8. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
+    9. [Enable passwordless SSH connections](#enable-passwordless-ssh-connections)
+    10. [Init or update the app](#init-or-update-the-app)
 
 ## Important notice
 
-Configuration script for deploy environment is meant to be executed after fresh installation of the OS.
+Configuration scripts for deploy environment are meant to be executed after fresh installation of the OS.
 
-Its purpose in not to be bullet-proof neither to handle all cases. It's just here to get started quickly as it just executes the exact same commands listed in "manual configuration" section.
+Its purpose in not to be bullet-proof neither to handle all cases. It's just here to get started quickly as it just executes the exact same commands listed in "manual configuration" sections.
 
 **So, if you have any trouble a non fresh-installed machine, please use "manual configuration" sections to complete your installation environment process.**
 
@@ -77,7 +87,7 @@ _Note: replace "your_email@example.com" by your email address._
 Then add it to your machine by using:
 
 ```bash
-ssh <username>@<ipAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee ~/.ssh/authorized_keys"
+ssh <username>@<ipAddress> "mkdir -p  ~/.ssh && touch ~/.ssh/authorized_keys && echo '$(cat ~/.ssh/id_rsa.pub)' | tee ~/.ssh/authorized_keys > /dev/null"
 ```
 
 _Note: replace "username" and "ipAddress" by your credentials infos._
@@ -88,9 +98,18 @@ _Note: replace "username" and "ipAddress" by your credentials infos._
 
 [Back to top ↑](#table-of-contents)
 
+### Server setup
+
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
+```
+
+### Deploy a new PHP/Symfony app
+
+```bash
+# Get and execute script directly
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
 ```
 
 ## Manual configuration
@@ -196,9 +215,6 @@ sudo newaliases
 [Back to top ↑](#table-of-contents)
 
 ```bash
-# Update packages list
-sudo apt update
-
 # Install
 sudo apt install -y apache2
 
@@ -331,15 +347,14 @@ logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local >
 sudo service fail2ban restart
 ```
 
-## Deploy a PHP/Symfony app
+### PHP/Symfony environment (optional)
 
-### PHP/Symfony prerequisites
-
-First, install everything from the PHP/Symfony dev instructions kit: <https://github.com/RomainFallet/symfony-dev-ubuntu>.
-
-Then, adjust these PHP settings:
+[Back to top ↑](#table-of-contents)
 
 ```bash
+# Install PHP/Symfony dev environment
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_configure_dev_env.sh)"
+
 # Get path to PHP config file
 phpinipath=$(php -r "echo php_ini_loaded_file();")
 
@@ -362,7 +377,11 @@ sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
 sudo mv "${phpinipath}" /etc/php/7.3/apache2/php.ini
 ```
 
+## Deploy a PHP/Symfony app
+
 ### Set up variables for PHP/Symfony app deployment
+
+[Back to top ↑](#table-of-contents)
 
 We need to configure some variables in order to reduce repetitions/replacements in the next commands.
 
@@ -390,6 +409,8 @@ fi
 
 ### Clone the app
 
+[Back to top ↑](#table-of-contents)
+
 ```bash
 # Clone app repository
 sudo git clone "${apprepositoryurl}" "/var/www/${appname}"
@@ -400,11 +421,13 @@ cd "/var/www/${appname}"
 
 ### Set up the database and the production mode
 
+[Back to top ↑](#table-of-contents)
+
 ```bash
 # Generate a random password for the new mysql user
 mysqlpassword=$(openssl rand -hex 15)
 
-# Create database and related user for the app and grant permissions (copy and paste all stuffs from "sudo mysql" to "EOF" in your terminal)
+# Create database and related user for the app and grant permissions
 sudo mysql -e "CREATE DATABASE ${appname};
 CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
 GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
@@ -424,18 +447,22 @@ sudo rm ./.env.local.tmp
 
 ### Set permissions
 
+[Back to top ↑](#table-of-contents)
+
 ```bash
 # Set ownership to Apache
 sudo chown -R www-data:www-data "/var/www/${appname}"
 
-# Set files permissions to 644
-sudo find "/var/www/${appname}" -type f -exec chmod 644 {} \;
+# Set files permissions to 664
+sudo find "/var/www/${appname}" -type f -exec chmod 664 {} \;
 
-# Set folders permissions to 755
-sudo find "/var/www/${appname}" -type d -exec chmod 755 {} \;
+# Set folders permissions to 775
+sudo find "/var/www/${appname}" -type d -exec chmod 775 {} \;
 ```
 
 ### Set up the web server
+
+[Back to top ↑](#table-of-contents)
 
 ```bash
 # Create an Apache conf file for the app
@@ -456,9 +483,11 @@ sudo service apache2 restart
 
 ### Enabling HTTPS & configure for Symfony
 
+[Back to top ↑](#table-of-contents)
+
 ```bash
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/${appname}/public" -d "${appdomain}" -m "${email}" -n
+sudo certbot certonly --webroot -w "/var/www/${appname}/public" -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Check certificates renewal every month
 echo '#!/bin/bash
@@ -488,7 +517,7 @@ echo "<VirtualHost ${appdomain}:80>
         Require all denied
     </Directory>
     <Directory /var/www/${appname}/public>
-        Required all granted
+        Require all granted
         php_admin_value open_basedir '/var/www/${appname}'
         FallbackResource /index.php
     </Directory>
@@ -512,6 +541,8 @@ sudo service apache2 restart
 
 ### Create a new SSH user for the app
 
+[Back to top ↑](#table-of-contents)
+
 This user will be used to access the app.
 
 ```bash
@@ -523,9 +554,16 @@ sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
 
 # Create the user and set the default shell
 sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
+
+# Give ownership to the user
+sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 ```
 
+**Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
+
 ### Create a chroot jail for this user
+
+[Back to top ↑](#table-of-contents)
 
 Because we only want this user to access his app and nothing else.
 
@@ -534,53 +572,55 @@ Because we only want this user to access his app and nothing else.
 sudo username="${appname}" use_basic_commands=n bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/chroot-jail/master/create.sh)"
 
 # Mount the app folder into the jail
-mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
+sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
-echo "/var/www/${appname} /home/jails/${appname}/home/ ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab
+echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null
 ```
 
-### Display app SSH credentials
+### Enable passwordless SSH connections
+
+[Back to top ↑](#table-of-contents)
+
+We simply need to copy your "~/.ssh/authorized_keys file into the chroot jail.
 
 ```bash
-echo "##########################################
-SSH user: ${appname}
-SSH password: ${sshpassword}
-##########################################"
+# Create SSH folder in the user home
+sudo mkdir -p /home/${appname}/.ssh
+
+# Copy the authorized_keys file
+sudo cp ~/.ssh/authorized_keys /home/${appname}/.ssh/authorized_keys
 
 # Clear history for security reasons
 unset HISTFILE
 history -c
 ```
 
-Then, you need to init your app by following the instructions below.
+**Note: this user must be used to access and manage your app. It has access to every tool you need (php, composer, git...) and cannot access other apps nor system settings.**
 
-## Init or Update your PHP/Symfony app
+### Init or update the app
 
-Login with the app SSH user and password.
+[Back to top ↑](#table-of-contents)
 
-### Pull latest updates
-
-```bash
-cd ~/ && git pull
-```
-
-### Install dependencies and build assets
+**Note: you must login with the newly created app SSH account to run these commands to ensure that the generated files will have appropriate permissions.**
 
 ```bash
+# Go inside the app directory
+cd ~/
+
+# Get latest updates
+git pull
+
 # Install PHP dependencies
 composer install
 
 # Install JS dependencies if package.json is found
 if [[ -f "./package.json" ]]; then yarn install; fi
 
-  # Build assets if build script is found
+# Build assets if build script is found
 if [[ -f "./package.json" ]]; then if grep '"build":' ./package.json; then yarn build; fi fi
-```
 
-### Execute database migrations
-
-```bash
-sudo php bin/console doctrine:migrations:diff
-sudo php bin/console doctrine:migrations:migrate -n
+# Execute database migrations
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate -n
 ```
