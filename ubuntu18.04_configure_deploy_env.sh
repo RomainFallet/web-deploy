@@ -72,6 +72,8 @@ sudo cp /etc/aliases /etc/.aliases.backup || exit 1
 echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null || exit 1
 sudo newaliases || exit 1
 
+postconf mail_version || exit
+
 ### Apache 2
 
 # Install
@@ -84,6 +86,9 @@ sudo a2enmod rewrite || exit 1
 # Restart Apache
 sudo service apache2 restart || exit 1
 
+apache2 -v
+sudo apache2ctl -M
+
 ### Certbot
 
 # Add Certbot official repositories
@@ -93,6 +98,8 @@ sudo add-apt-repository -y ppa:certbot/certbot || exit 1
 # Install
 sudo apt install -y certbot || exit 1
 
+certbot --version || exit 1
+
 ### Firewall
 
 # Add rules and activate firewall
@@ -100,6 +107,8 @@ sudo ufw allow OpenSSH || exit 1
 sudo ufw allow Postfix || exit 1
 sudo ufw allow in "Apache Full" || exit 1
 echo 'y' | sudo ufw enable || exit 1
+
+sudo ufw status || exit 1
 
 ### Fail2ban
 
@@ -182,6 +191,9 @@ logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local >
 
 # Restart Fail2ban
 sudo service fail2ban restart || exit 1
+
+fail2ban-client -V || exit 1
+sudo fail2ban-client status || exit 1
 
 ### PHP/Symfony environment (optional)
 
