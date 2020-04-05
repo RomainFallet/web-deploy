@@ -2,7 +2,7 @@
 
 ![logo-ubuntu](https://user-images.githubusercontent.com/6952638/78182032-b119d300-7465-11ea-9e00-43e3d7265f91.png)
 
-The purpose of this repository is to provide instructions to configure a web development environment on **Ubuntu 18.04 Server**.
+The purpose of this repository is to provide instructions to configure a web deployment environment on **Ubuntu 18.04 Server**.
 
 The goal is to provide an opinionated, fully tested environment, that just work.
 
@@ -13,7 +13,7 @@ The goal is to provide an opinionated, fully tested environment, that just work.
   - [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
   - [Configure an SSH key](#-configure-an-ssh-key)
 - [Quickstart](#quickstart)
-- [Manual configuration: server setup](#manual-configuration-server-step)
+- [Manual configuration: server setup](#manual-configuration-server-setup)
     1. [Set up variables](#set-up-variables)
     2. [SSH](#ssh)
     3. [Updates](#Updates)
@@ -112,7 +112,7 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/we
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
 ```
 
-## Manual configuration
+## Manual configuration: server setup
 
 ### Set up variables
 
@@ -377,7 +377,7 @@ sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
 sudo mv "${phpinipath}" /etc/php/7.3/apache2/php.ini
 ```
 
-## Deploy a PHP/Symfony app
+## Manual configuration: deploy a PHP/Symfony app
 
 ### Set up variables for PHP/Symfony app deployment
 
