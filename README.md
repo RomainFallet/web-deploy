@@ -92,7 +92,7 @@ ssh <username>@<ipAddress> "mkdir -p  ~/.ssh && touch ~/.ssh/authorized_keys && 
 
 _Note: replace "username" and "ipAddress" by your credentials infos._
 
-**The script will disable SSH password authentication for security reasons. You must backup the generated SSH key in a safe place (for example, in a password manager app) to prevent loosing access to the machine if your computer dies.**
+**The following script will disable SSH password authentication for security reasons. You must backup the generated SSH key in a safe place (for example, in a password manager app) to prevent loosing access to the machine if your computer dies.**
 
 ## Quickstart
 
