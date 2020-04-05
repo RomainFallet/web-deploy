@@ -403,7 +403,7 @@ fi
 
 # Ask repository URL if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
 if [[ -z "${apprepositoryurl}" ]]; then
-    read -p "Enter the Git repository URL of your app: " apprepositoryurl
+    read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
 ```
 
