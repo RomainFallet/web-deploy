@@ -353,7 +353,7 @@ sudo service fail2ban restart
 
 ```bash
 # Install PHP/Symfony dev environment
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_configure_dev_env.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-deploy/master/ubuntu18.04_configure_dev_env.sh)"
 
 # Get path to PHP config file
 phpinipath=$(php -r "echo php_ini_loaded_file();")
