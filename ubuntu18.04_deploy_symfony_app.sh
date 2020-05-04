@@ -22,6 +22,11 @@ if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl || exit 1
 fi
 
+# Ask SSH password if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${sshpassword}" ]]; then
+    read -r -p "Enter a new password for the SSH account that will be created for your app: " sshpassword
+fi
+
 ### Clone the app
 
 # Clone app repository
@@ -136,9 +141,6 @@ sudo service apache2 restart || exit 1
 
 ### Create a new SSH user for the app
 
-# Generate a new password
-sshpassword=$(openssl rand -hex 15) || exit 1
-
 # Encrypt the password
 sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin) || exit 1
 
@@ -158,14 +160,6 @@ sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
 echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null || exit 1
-
-### Enable passwordless SSH connections
-
-# Create SSH folder in the user home
-sudo mkdir -p "/home/${appname}/.ssh" || exit 1
-
-# Copy the authorized_keys file
-sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys" || exit 1
 
 # Clear history for security reasons
 unset HISTFILE || exit 1

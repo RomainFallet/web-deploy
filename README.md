@@ -55,7 +55,7 @@ But, in most cases, the Ubuntu install process is handled by your hosting provid
 
 ```bash
 # Login to your machine's root account
-ssh root@<ipAddress>
+ssh root@<hostname>
 
 # Create a new user
 adduser <username>
@@ -79,18 +79,16 @@ _SSH client is enabled by default on Windows since the 2018 April update (1804).
 Before going any further, you need to generate an SSH key and add it to your server machine.
 
 ```bash
-ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+ssh-keygen -t rsa -b 4096 -N ''
 ```
-
-_Note: replace "your_email@example.com" by your email address._
 
 Then add it to your machine by using:
 
 ```bash
-ssh <username>@<ipAddress> "mkdir -p  ~/.ssh && touch ~/.ssh/authorized_keys && echo '$(cat ~/.ssh/id_rsa.pub)' | tee ~/.ssh/authorized_keys > /dev/null"
+ssh-copy-id -i ~/.ssh/id_rsa <username>@<hostname>
 ```
 
-_Note: replace "username" and "ipAddress" by your credentials infos._
+_Note: replace "username" and "hostname" by your credentials infos._
 
 **The following script will disable SSH password authentication for security reasons. You must backup the generated SSH key in a safe place (for example, in a password manager app) to prevent loosing access to the machine if your computer dies.**
 
@@ -405,6 +403,11 @@ fi
 if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
+
+# Ask SSH password if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${sshpassword}" ]]; then
+    read -r -p "Enter a new password for the SSH account that will be created for your app: " sshpassword
+fi
 ```
 
 ### Clone the app
@@ -546,9 +549,6 @@ sudo service apache2 restart
 This user will be used to access the app.
 
 ```bash
-# Generate a new password
-sshpassword=$(openssl rand -hex 15)
-
 # Encrypt the password
 sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
 
@@ -557,9 +557,11 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
-```
 
-**Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
+# Clear history for security reasons
+unset HISTFILE
+history -c
+```
 
 ### Create a chroot jail for this user
 
@@ -576,24 +578,6 @@ sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
 echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null
-```
-
-### Enable passwordless SSH connections
-
-[Back to top ↑](#table-of-contents)
-
-We simply need to copy your "~/.ssh/authorized_keys file into the chroot jail.
-
-```bash
-# Create SSH folder in the user home
-sudo mkdir -p "/home/${appname}/.ssh"
-
-# Copy the authorized_keys file
-sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
-
-# Clear history for security reasons
-unset HISTFILE
-history -c
 ```
 
 **Note: this user must be used to access and manage your app. It has access to every tool you need (php, composer, git...) and cannot access other apps nor system settings.**
