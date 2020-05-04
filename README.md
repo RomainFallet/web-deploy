@@ -11,7 +11,7 @@ The goal is to provide an opinionated, fully tested environment, that just work.
 - [Important notice](#important-notice)
 - [Prerequisites](#prerequisites)
   - [Create a user account with sudo privileges](#create-a-user-account-with-sudo-privileges)
-  - [Configure an SSH key](#-configure-an-ssh-key)
+  - [Configure an SSH key](#configure-an-ssh-key)
 - [Quickstart](#quickstart)
 - [Manual configuration: server setup](#manual-configuration-server-setup)
     1. [Set up variables](#set-up-variables)
