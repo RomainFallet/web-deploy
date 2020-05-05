@@ -107,7 +107,7 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/we
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
 ```
 
 ## Manual configuration: server setup
