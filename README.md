@@ -273,7 +273,7 @@ enabled = true
 port = 22
 filter = sshd
 logpath = /var/log/auth.log
-maxretry = 3" | sudo tee -a /etc/fail2ban/jail.local > /dev/null
+maxretry = 3" | sudo tee /etc/fail2ban/jail.local > /dev/null
 
 # Add Postfix configuration
 echo "
