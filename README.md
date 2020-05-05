@@ -599,12 +599,12 @@ git pull
 composer install
 
 # Install JS dependencies if package.json is found
-if [[ -f "./package.json" ]]; then yarn install; fi
+yarn install
 
 # Build assets if build script is found
-if [[ -f "./package.json" ]]; then if grep '"build":' ./package.json; then yarn build; fi fi
+yarn build
 
 # Execute database migrations
-php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:diff --allow-empty-diff
 php bin/console doctrine:migrations:migrate -n
 ```

@@ -180,11 +180,11 @@ sudo su "${appname}" -c "git pull"
 sudo su "${appname}" -c "composer install"
 
 # Install JS dependencies if package.json is found
-sudo su "${appname}" -c "bash -c \"if [[ -f './package.json' ]]; then yarn install; fi\""
+sudo su "${appname}" -c "yarn install"
 
 # Build assets if build script is found
-sudo su "${appname}" -c "bash -c \"if [[ -f './package.json' ]]; then if grep '\"build\":' ./package.json; then yarn build; fi fi\""
+sudo su "${appname}" -c "yarn build"
 
 # Execute database migrations
-sudo su "${appname}" -c "php bin/console doctrine:migrations:diff"
+sudo su "${appname}" -c "php bin/console doctrine:migrations:diff  --allow-empty-diff"
 sudo su "${appname}" -c "php bin/console doctrine:migrations:migrate -n"
