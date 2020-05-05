@@ -196,7 +196,6 @@ logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local >
 sudo service fail2ban restart
 
 fail2ban-client -V
-sudo fail2ban-client status
 
 ### PHP/Symfony environment (optional)
 
