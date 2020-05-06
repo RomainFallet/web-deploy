@@ -229,5 +229,5 @@ if [[ "${phpsymfony}" == 'y' ]]; then
 
   # Apply PHP configuration to Apache
   sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
-  sudo mv "${phpinipath}" /etc/php/7.3/apache2/php.ini
+  sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
 fi
