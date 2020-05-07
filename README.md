@@ -362,7 +362,7 @@ sudo sed -i'.tmp' -e 's/disable_functions =/disable_functions = error_reporting,
 # Hide errors (can cause security issues)
 sudo sed -i'.tmp' -e 's/display_errors = On/display_errors = Off/g' "${phpinipath}"
 sudo sed -i'.tmp' -e 's/display_startup_errors = On/display_startup_errors = Off/g' "${phpinipath}"
-sudo sed -i'.tmp' -e 's/error_reporting = E_ALL/error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/error_reporting = E_ALL/error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_STRICT/g' "${phpinipath}"
 
 # Remove temporary file
 sudo rm "${phpinipath}.tmp"
