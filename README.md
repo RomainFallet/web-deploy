@@ -558,6 +558,9 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
+# Make new files inherit from the group ownership
+sudo chmod g+s "/var/www/${appname}"
+
 # Clear history for security reasons
 unset HISTFILE
 history -c
