@@ -25,11 +25,6 @@ if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
 
-# Ask SSH password if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
-if [[ -z "${sshpassword}" ]]; then
-    read -r -p "Enter a new password for the SSH account that will be created for your app: " sshpassword
-fi
-
 ### Clone the app
 
 # Clone app repository
@@ -144,6 +139,9 @@ sudo service apache2 restart
 
 ### Create a new SSH user for the app
 
+# Generate a new password
+sshpassword=$(openssl rand -hex 15)
+
 # Encrypt the password
 sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
 
@@ -155,6 +153,14 @@ sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
 # Make new files inherit from the group ownership
 sudo chmod g+s "/var/www/${appname}"
+
+### Enable passwordless SSH connections
+
+# Create SSH folder in the user home
+sudo mkdir -p "/home/${appname}/.ssh"
+
+# Copy the authorized_keys file
+sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
 
 ### Create a chroot jail for this user
 

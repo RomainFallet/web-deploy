@@ -403,11 +403,6 @@ fi
 if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
-
-# Ask SSH password if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
-if [[ -z "${sshpassword}" ]]; then
-    read -r -p "Enter a new password for the SSH account that will be created for your app: " sshpassword
-fi
 ```
 
 ### Clone the app
@@ -549,6 +544,9 @@ sudo service apache2 restart
 This user will be used to access the app.
 
 ```bash
+# Generate a new password
+sshpassword=$(openssl rand -hex 15)
+
 # Encrypt the password
 sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
 
@@ -560,6 +558,22 @@ sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
 # Make new files inherit from the group ownership
 sudo chmod g+s "/var/www/${appname}"
+```
+
+**Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
+
+### Enable passwordless SSH connections
+
+[Back to top ↑](#table-of-contents)
+
+We simply need to copy your "~/.ssh/authorized_keys file into the chroot jail.
+
+```bash
+# Create SSH folder in the user home
+sudo mkdir -p "/home/${appname}/.ssh"
+
+# Copy the authorized_keys file
+sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
 
 # Clear history for security reasons
 unset HISTFILE
