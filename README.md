@@ -454,7 +454,7 @@ sudo rm ./.env.local.tmp
 
 ```bash
 # Set ownership to Apache
-sudo chown -R "${appname}:www-data" "/var/www/${appname}"
+sudo chown -R www-data:www-data "/var/www/${appname}"
 
 # Set files permissions to 664
 sudo find "/var/www/${appname}" -type f -exec chmod 664 {} \;
