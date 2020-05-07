@@ -85,7 +85,7 @@ ssh-keygen -t rsa -b 4096 -N ''
 Then add it to your machine by using:
 
 ```bash
-ssh-copy-id -i ~/.ssh/id_rsa <username>@<hostname>
+ssh-copy-id <username>@<hostname>
 ```
 
 _Note: replace "username" and "hostname" by your credentials infos._
