@@ -614,7 +614,7 @@ Then, **backup the content of these files** (in a password manager app for examp
 You can add the key to the SSH user of the app with:
 
 ```bash
-ssh-copy-id -i ~/.ssh/<appname>.id_rsa <appname>@<hostname>
+ssh <adminusername>@<hostname> "echo '$(cat ~/.ssh/<appname>.id_rsa.pub)' | sudo tee -a /home/<appname>/.ssh/authorized_keys"
 ```
 
 You can then safely copy this private key to the CI & CD service provider of your choice.
