@@ -138,6 +138,9 @@ sudo mkdir -p "/home/${appname}/.ssh"
 # Copy the authorized_keys file to enable passwordless SSH connections
 sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
 
+# Give ownership to the user
+sudo chown -R "${appname}:${appname}" "/home/${appname}/.ssh"
+
 ### Create a chroot jail for this user
 
 # Create the jail

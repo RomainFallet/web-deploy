@@ -549,6 +549,9 @@ sudo mkdir -p "/home/${appname}/.ssh"
 
 # Copy the authorized_keys file to enable passwordless SSH connections
 sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
+
+# Give ownership to the user
+sudo chown -R "${appname}:${appname}" "/home/${appname}/.ssh"
 ```
 
 **Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
