@@ -22,18 +22,14 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     6. [Certbot](#certbot)
     7. [Firewall](#firewall)
     8. [Fail2ban](#fail2ban)
-    9. [PHP/Symfony environment (optional)](#phpsymfony-environment-optional)
+    9. [PHP environment (optional)](#php-environment-optional)
 - [Manual configuration: deploy a PHP/Symfony app](#manual-configuration-deploy-a-phpsymfony-app)
     1. [Set up variables for PHP/Symfony app deployment](#set-up-variables-for-phpsymfony-app-deployment)
-    2. [Clone the app](#clone-the-app)
-    3. [Set up the database and the production mode](#set-up-the-database-and-the-production-mode)
-    4. [Set permissions](#set-permissions)
-    5. [Set up the web server](#set-up-the-web-server)
-    6. [Enabling HTTPS & configure for Symfony](#enabling-https--configure-for-symfony)
-    7. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
-    8. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
-    9. [Enable passwordless SSH connections](#enable-passwordless-ssh-connections)
-    10. [Init or update the app](#init-or-update-the-app)
+    2. [Set up the web server](#set-up-the-web-server)
+    3. [Enabling HTTPS & configure for Symfony](#enabling-https--configure-for-symfony)
+    4. [Set up the database](#set-up-the-database)
+    5. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
+    6. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
 
 ## Important notice
 
@@ -345,7 +341,7 @@ logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local >
 sudo service fail2ban restart
 ```
 
-### PHP/Symfony environment (optional)
+### PHP environment (optional)
 
 [Back to top ↑](#table-of-contents)
 
@@ -416,59 +412,11 @@ fi
 if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
-```
 
-### Clone the app
-
-[Back to top ↑](#table-of-contents)
-
-```bash
-# Clone app repository
-sudo git clone "${apprepositoryurl}" "/var/www/${appname}"
-
-# Go inside the app directory
-cd "/var/www/${appname}"
-```
-
-### Set up the database and the production mode
-
-[Back to top ↑](#table-of-contents)
-
-```bash
-# Generate a random password for the new mysql user
-mysqlpassword=$(openssl rand -hex 15)
-
-# Create database and related user for the app and grant permissions
-sudo mysql -e "CREATE DATABASE ${appname};
-CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
-GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
-
-# Create .env.local file
-sudo cp ./.env ./.env.local
-
-# Set APP_ENV to "prod"
-sudo sed -i'.tmp' -e 's/APP_ENV=dev/APP_ENV=prod/g' ./.env.local
-
-# Set mysql credentials
-sudo sed -i'.tmp' -e 's,DATABASE_URL=mysql://db_user:db_password@127.0.0.1:3306/db_name,DATABASE_URL=mysql://'"${appname}"':'"${mysqlpassword}"'@127.0.0.1:3306/'"${appname}"',g' ./.env.local
-
-# Remove temporary file
-sudo rm ./.env.local.tmp
-```
-
-### Set permissions
-
-[Back to top ↑](#table-of-contents)
-
-```bash
-# Set ownership to Apache
-sudo chown -R www-data:www-data "/var/www/${appname}"
-
-# Set files permissions to 664
-sudo find "/var/www/${appname}" -type f -exec chmod 664 {} \;
-
-# Set folders permissions to 775
-sudo find "/var/www/${appname}" -type d -exec chmod 775 {} \;
+# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${mysqlpassword}" ]]; then
+    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
+fi
 ```
 
 ### Set up the web server
@@ -476,6 +424,12 @@ sudo find "/var/www/${appname}" -type d -exec chmod 775 {} \;
 [Back to top ↑](#table-of-contents)
 
 ```bash
+# Create the app directory
+sudo mkdir "/var/www/${appname}"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/${appname}"
+
 # Create an Apache conf file for the app
 echo "<VirtualHost ${appdomain}:80>
   # Set up server name
@@ -550,6 +504,17 @@ echo "<VirtualHost ${appdomain}:80>
 sudo service apache2 restart
 ```
 
+### Set up the database
+
+[Back to top ↑](#table-of-contents)
+
+```bash
+# Create database and related user for the app and grant permissions
+sudo mysql -e "CREATE DATABASE ${appname};
+CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
+```
+
 ### Create a new SSH user for the app
 
 [Back to top ↑](#table-of-contents)
@@ -569,29 +534,17 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
-# Make new files inherit from the group ownership
+# Make new files inherit from the group ownership (so that Apache can still access them)
 sudo chmod g+s "/var/www/${appname}"
-```
 
-**Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
-
-### Enable passwordless SSH connections
-
-[Back to top ↑](#table-of-contents)
-
-We simply need to copy your "~/.ssh/authorized_keys file into the chroot jail.
-
-```bash
 # Create SSH folder in the user home
 sudo mkdir -p "/home/${appname}/.ssh"
 
-# Copy the authorized_keys file
+# Copy the authorized_keys file to enable passwordless SSH connections
 sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
-
-# Clear history for security reasons
-unset HISTFILE
-history -c
 ```
+
+**Note: you actually don't need to know the password because we disabled SSH password authentication and didn't give sudo privileges to this user.**
 
 ### Create a chroot jail for this user
 
@@ -610,31 +563,4 @@ sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null
 ```
 
-**Note: this user must be used to access and manage your app. It has access to every tool you need (php, composer, git...) and cannot access other apps nor system settings.**
-
-### Init or update the app
-
-[Back to top ↑](#table-of-contents)
-
-**Note: you must login with the newly created app SSH account to run these commands to ensure that the generated files will have appropriate permissions.**
-
-```bash
-# Go inside the app directory
-cd ~/
-
-# Get latest updates
-git pull
-
-# Install PHP dependencies
-composer install
-
-# Install JS dependencies if package.json is found
-yarn install
-
-# Build assets if build script is found
-yarn build
-
-# Execute database migrations
-php bin/console doctrine:migrations:diff --allow-empty-diff
-php bin/console doctrine:migrations:migrate -n
-```
+**Note: this user must be used to access and manage your app safely. He cannot access other apps nor system settings.**

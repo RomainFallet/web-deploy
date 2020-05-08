@@ -25,48 +25,18 @@ if [[ -z "${apprepositoryurl}" ]]; then
     read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
 fi
 
-### Clone the app
-
-# Clone app repository
-sudo git clone "${apprepositoryurl}" "/var/www/${appname}"
-
-# Go inside the app directory
-cd "/var/www/${appname}"
-
-### Set up the database and the production mode
-
-# Generate a random password for the new mysql user
-mysqlpassword=$(openssl rand -hex 15)
-
-# Create database and related user for the app and grant permissions
-sudo mysql -e "CREATE DATABASE ${appname};
-CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
-GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
-
-# Create .env.local file
-sudo cp ./.env ./.env.local
-
-# Set APP_ENV to "prod"
-sudo sed -i'.tmp' -e 's/APP_ENV=dev/APP_ENV=prod/g' ./.env.local
-
-# Set mysql credentials
-sudo sed -i'.tmp' -e 's,DATABASE_URL=mysql://db_user:db_password@127.0.0.1:3306/db_name,DATABASE_URL=mysql://'"${appname}"':'"${mysqlpassword}"'@127.0.0.1:3306/'"${appname}"',g' ./.env.local
-
-# Remove temporary file
-sudo rm ./.env.local.tmp
-
-### Set permissions
-
-# Set ownership to Apache
-sudo chown -R www-data:www-data "/var/www/${appname}"
-
-# Set files permissions to 664
-sudo find "/var/www/${appname}" -type f -exec chmod 664 {} \;
-
-# Set folders permissions to 775
-sudo find "/var/www/${appname}" -type d -exec chmod 775 {} \;
+# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${mysqlpassword}" ]]; then
+    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
+fi
 
 ### Set up the web server
+
+# Create the app directory
+sudo mkdir "/var/www/${appname}"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/${appname}"
 
 # Create an Apache conf file for the app
 echo "<VirtualHost ${appdomain}:80>
@@ -137,8 +107,21 @@ echo "<VirtualHost ${appdomain}:80>
 # Restart Apache to make changes available
 sudo service apache2 restart
 
+### Set up the database
+
+# Create database and related user for the app and grant permissions
+sudo mysql -e "CREATE DATABASE ${appname};
+CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
+```
+
 ### Create a new SSH user for the app
 
+[Back to top ↑](#table-of-contents)
+
+This user will be used to access the app.
+
+```bash
 # Generate a new password
 sshpassword=$(openssl rand -hex 15)
 
@@ -151,15 +134,13 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
-# Make new files inherit from the group ownership
+# Make new files inherit from the group ownership (so that Apache can still access them)
 sudo chmod g+s "/var/www/${appname}"
-
-### Enable passwordless SSH connections
 
 # Create SSH folder in the user home
 sudo mkdir -p "/home/${appname}/.ssh"
 
-# Copy the authorized_keys file
+# Copy the authorized_keys file to enable passwordless SSH connections
 sudo cp ~/.ssh/authorized_keys "/home/${appname}/.ssh/authorized_keys"
 
 ### Create a chroot jail for this user
@@ -172,28 +153,3 @@ sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
 echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null
-
-# Clear history for security reasons
-unset HISTFILE
-history -c
-
-### Init or update the app
-
-# Go inside the app directory
-cd "/var/www/${appname}"
-
-# Get latest updates
-sudo su "${appname}" -c "git pull"
-
-# Install PHP dependencies
-sudo su "${appname}" -c "composer install"
-
-# Install JS dependencies if package.json is found
-sudo su "${appname}" -c "yarn install"
-
-# Build assets if build script is found
-sudo su "${appname}" -c "yarn build"
-
-# Execute database migrations
-sudo su "${appname}" -c "php bin/console doctrine:migrations:diff  --allow-empty-diff"
-sudo su "${appname}" -c "php bin/console doctrine:migrations:migrate -n"
