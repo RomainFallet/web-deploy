@@ -23,13 +23,14 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     7. [Firewall](#firewall)
     8. [Fail2ban](#fail2ban)
     9. [PHP environment (optional)](#php-environment-optional)
-- [Manual configuration: deploy a PHP/Symfony app](#manual-configuration-deploy-a-phpsymfony-app)
-    1. [Set up variables for PHP/Symfony app deployment](#set-up-variables-for-phpsymfony-app-deployment)
+- [Manual configuration: configure a PHP/Symfony app](#manual-configuration-configure-a-phpsymfony-app)
+    1. [Set up variables for PHP/Symfony app configuration](#set-up-variables-for-phpsymfony-app-configuration)
     2. [Set up the web server](#set-up-the-web-server)
     3. [Enabling HTTPS & configure for Symfony](#enabling-https--configure-for-symfony)
     4. [Set up the database](#set-up-the-database)
     5. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
     6. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
+    7. [Transfer your files](#transfer-your-files)
 
 ## Important notice
 
@@ -99,7 +100,7 @@ _Note: replace "username" and "hostname" by your credentials infos._
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
 ```
 
-### Deploy a new PHP/Symfony app
+### Configure a new PHP/Symfony app
 
 ```bash
 # Get and execute script directly
@@ -384,9 +385,9 @@ curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
 sudo apt install -y mariadb-server-10.4
 ```
 
-## Manual configuration: deploy a PHP/Symfony app
+## Manual configuration: configure a PHP/Symfony app
 
-### Set up variables for PHP/Symfony app deployment
+### Set up variables for PHP/Symfony app configuration
 
 [Back to top ↑](#table-of-contents)
 
@@ -564,3 +565,13 @@ echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatim
 ```
 
 **Note: this user must be used to access and manage your app safely. He cannot access other apps nor system settings.**
+
+### Transfer your files
+
+[Back to top ↑](#table-of-contents)
+
+All you need to do now is to transfer your app files using the SSH user created for your app (in the home directory) through SFTP or SSH.
+
+You can use the [Filezilla FTP client](https://filezilla-project.org/) or automate the process using a tool like [Rsync](https://linux.die.net/man/1/rsync).
+
+Don’t forget to only install production dependencies and to configure environment variables in the `.env.local` file (if you're using DotENV) before transferring your files.
