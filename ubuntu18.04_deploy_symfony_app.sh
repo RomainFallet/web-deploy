@@ -44,7 +44,7 @@ echo "<VirtualHost ${appdomain}:80>
   ServerName ${appdomain}
 
   # Set up document root
-  DocumentRoot /var/www/${appname}/public
+  DocumentRoot /var/www/${appname}
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
 
 # Activate Apache conf
@@ -56,7 +56,7 @@ sudo service apache2 restart
 ### Enabling HTTPS & configure for Symfony
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/${appname}/public" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/${appname}" -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Check certificates renewal every month
 echo '#!/bin/bash
