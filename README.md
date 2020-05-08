@@ -350,29 +350,42 @@ sudo service fail2ban restart
 [Back to top ↑](#table-of-contents)
 
 ```bash
-# Install PHP/Symfony dev environment
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/symfony-dev-ubuntu/master/ubuntu18.04_configure_dev_env.sh)"
+# Add PHP official repository
+sudo add-apt-repository -y ppa:ondrej/php
 
-# Get path to PHP config file
+# Install PHP
+sudo apt install -y php7.3
+
+# Install extensions
+sudo apt install -y php7.3-mbstring php7.3-mysql php7.3-xml php7.3-curl php7.3-zip php7.3-intl php7.3-gd
+
+# Make a backup of the config file
 phpinipath=$(php -r "echo php_ini_loaded_file();")
+sudo cp "${phpinipath}" "$(dirname "${phpinipath}")/.php.ini.backup"
+
+# Update some configuration in php.ini
+sudo sed -i'.tmp' -e 's/post_max_size = 8M/post_max_size = 64M/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/upload_max_filesize = 8M/upload_max_filesize = 64M/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/memory_limit = 128M/memory_limit = 512M/g' "${phpinipath}"
 
 # Disable functions that can causes security breaches
-sudo sed -i'.tmp' -e 's/disable_functions =/disable_functions = error_reporting,ini_set,exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source/g' "${phpinipath}"
+sudo sed -i'.tmp' -e 's/disable_functions =/disable_functions = error_reporting,ini_set,exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source/g' "${phpinipath}"
 
-# Hide errors (can cause security issues)
-sudo sed -i'.tmp' -e 's/display_errors = On/display_errors = Off/g' "${phpinipath}"
-sudo sed -i'.tmp' -e 's/display_startup_errors = On/display_startup_errors = Off/g' "${phpinipath}"
-sudo sed -i'.tmp' -e 's/error_reporting = E_ALL/error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_STRICT/g' "${phpinipath}"
+# Replace default PHP installation in $PATH
+sudo update-alternatives --set php /usr/bin/php7.3
 
 # Remove temporary file
 sudo rm "${phpinipath}.tmp"
 
-# Disable Xdebug extension (can cause performance issues)
-sudo phpdismod xdebug
-
 # Apply PHP configuration to Apache
 sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
 sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
+
+# Add MariaDB official repository
+curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+
+# Install
+sudo apt install -y mariadb-server-10.4
 ```
 
 ## Manual configuration: deploy a PHP/Symfony app
