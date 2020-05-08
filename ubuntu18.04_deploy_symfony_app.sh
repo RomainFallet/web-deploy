@@ -20,11 +20,6 @@ if [[ -z "${appdomain}" ]]; then
     read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
 fi
 
-# Ask repository URL if not already set (copy and paste all stuffs from "if" to "fi" in your terminal)
-if [[ -z "${apprepositoryurl}" ]]; then
-    read -r -p "Enter the Git repository URL of your app: " apprepositoryurl
-fi
-
 # Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
 if [[ -z "${mysqlpassword}" ]]; then
     read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
