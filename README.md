@@ -30,7 +30,8 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     4. [Set up the database](#set-up-the-database)
     5. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
     6. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
-    7. [Transfer your files](#transfer-your-files)
+    7. [Transfer your files from your computer](#transfer-your-files-from-your-computer)
+    7. [Transfer your files from CI/CD](#transfer-your-files-from-cicd)
 
 ## Important notice
 
@@ -566,7 +567,7 @@ echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatim
 
 **Note: this user must be used to access and manage your app safely. He cannot access other apps nor system settings.**
 
-### Transfer your files
+### Transfer your files from your computer
 
 [Back to top ↑](#table-of-contents)
 
@@ -575,3 +576,31 @@ All you need to do now is to transfer your app files using the SSH user created 
 You can use the [Filezilla FTP client](https://filezilla-project.org/) or automate the process using a tool like [Rsync](https://linux.die.net/man/1/rsync).
 
 Don’t forget to only install production dependencies and to configure environment variables in the `.env.local` file (if you're using DotENV) before transferring your files.
+
+### Transfer your files from CI/CD
+
+[Back to top ↑](#table-of-contents)
+
+Using our private key directly on a machine owned by a Continuous Integration & Continuous Delivery (CI & CD) service provider (such as GitHub Actions, GitLab, Jenkins, Travis, etc.) is **INSECURED**.
+
+All your machines probably accept this private key, because, well, you are the admin.
+
+You don't know how the CI & CD services will store your key (even if they claimed they are secured). The risk is that if your private key is compromised and stolen, all your machines will be opened to the thief.
+
+Instead, we will create a new SSH private/public key pair that will be **dedicated to the CI & CD usage of this app**. If it's compromised, only this app can be damaged and you can easily revoke it from the production server without removing your own access.
+
+From your local computer, create a new SSH keys for you app (replace "appname"):
+
+```bash
+ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/<appname>.id_rsa -C '<appname>'
+```
+
+Then, **backup the content of these files** (in a password manager app for example).
+
+You can add the key to the SSH user of the app with:
+
+```bash
+ssh-copy-id -i ~/.ssh/<appname>.id_rsa <appname>@<hostname>
+```
+
+You can then safely copy this private key to the CI & CD service provider of your choice.
