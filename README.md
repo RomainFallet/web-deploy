@@ -31,7 +31,7 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     5. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
     6. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
     7. [Transfer your files from your computer](#transfer-your-files-from-your-computer)
-    7. [Transfer your files from CI/CD](#transfer-your-files-from-cicd)
+    8. [Transfer your files from CI/CD](#transfer-your-files-from-cicd)
 
 ## Important notice
 
@@ -101,12 +101,22 @@ _Note: replace "username" and "hostname" by your credentials infos._
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
 ```
 
+This will install all softwares needed to host production apps.
+
 ### Configure a new PHP/Symfony app
 
 ```bash
 # Get and execute script directly
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
 ```
+
+This will create the web server configuration, the database and the SSH user for your app (based on your app name). After that, you will be able to login to your app with:
+
+```bash
+ssh <appname>@<hostname>
+```
+
+If you need to deploy your app through CI & CD, follow [these instructions](#transfer-your-files-from-cicd).
 
 ## Manual configuration: server setup
 
@@ -561,6 +571,12 @@ echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatim
 ```
 
 **Note: this user must be used to access and manage your app safely. He cannot access other apps nor system settings.**
+
+After that, you will be able to login to your app with:
+
+```bash
+ssh <appname>@<hostname>
+```
 
 ### Transfer your files from your computer
 
