@@ -108,15 +108,9 @@ sudo service apache2 restart
 sudo mysql -e "CREATE DATABASE ${appname};
 CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
 GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
-```
 
 ### Create a new SSH user for the app
 
-[Back to top ↑](#table-of-contents)
-
-This user will be used to access the app.
-
-```bash
 # Generate a new password
 sshpassword=$(openssl rand -hex 15)
 
