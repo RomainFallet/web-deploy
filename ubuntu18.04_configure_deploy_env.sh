@@ -201,7 +201,7 @@ fail2ban-client -V
 
 # Ask for PHP/Symfony environment
 if [[ -z "${phpsymfony}" ]]; then
-    read -r -p "Do you want to install PHP/Symfony environment? [N/y]: " phpsymfony
+    read -r -p "Do you want to install PHP environment? [N/y]: " phpsymfony
     phpsymfony=${phpsymfony:-n}
     phpsymfony=$(echo "${phpsymfony}" | awk '{print tolower($0)}')
 fi
