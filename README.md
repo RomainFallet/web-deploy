@@ -240,8 +240,6 @@ sudo service apache2 restart
 
 In order to get SSL certifications, we need certbot.
 
-Ubuntu 18.04 Server:
-
 ```bash
 # Add Certbot official repositories
 sudo add-apt-repository universe
