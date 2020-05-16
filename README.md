@@ -546,8 +546,8 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
-# Make new files inherit from the group ownership (so that Apache can still access them)
-sudo chmod g+s "/var/www/${appname}"
+# Set Apache group to the (so that Apache can still access his files)
+sudo usermod -g www-data "${appname}"
 
 # Create SSH folder in the user home
 sudo mkdir -p "/home/${appname}/.ssh"
