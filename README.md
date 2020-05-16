@@ -228,6 +228,9 @@ sudo apt install -y apache2
 sudo a2enmod ssl
 sudo a2enmod rewrite
 
+# Set umask of the Apache user
+echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
+
 # Restart Apache
 sudo service apache2 restart
 ```
@@ -546,7 +549,7 @@ sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
 # Give ownership to the user
 sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
-# Set Apache group to the (so that Apache can still access his files)
+# Give Apache group to the user (so that Apache can still access his files)
 sudo usermod -g www-data "${appname}"
 
 # Create SSH folder in the user home

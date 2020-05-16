@@ -86,6 +86,9 @@ sudo apt install -y apache2
 sudo a2enmod ssl
 sudo a2enmod rewrite
 
+# Set umask of the Apache user
+echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
+
 # Restart Apache
 sudo service apache2 restart
 
