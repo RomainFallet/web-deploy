@@ -118,13 +118,20 @@ sudo ufw status
 # Install
 sudo apt install -y fail2ban
 
-# Add SSH configuration
-echo "[sshd]
+# Add default configuration
+echo "[DEFAULT]
+findtime = 3600
+bantime = 86400
+destemail = ${email}
+action = %(action_mwl)s" | sudo tee /etc/fail2ban/jail.local > /dev/null
+
+echo "
+[sshd]
 enabled = true
-port = 22
+port = ssh
 filter = sshd
 logpath = /var/log/auth.log
-maxretry = 3" | sudo tee /etc/fail2ban/jail.local > /dev/null
+maxretry = 3" | sudo tee -a /etc/fail2ban/jail.local > /dev/null
 
 # Add Postfix configuration
 echo "
