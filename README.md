@@ -1,8 +1,6 @@
 # The web deploy instructions kit
 
-![logo-ubuntu](https://user-images.githubusercontent.com/6952638/78182032-b119d300-7465-11ea-9e00-43e3d7265f91.png)
-
-The purpose of this repository is to provide instructions to configure a web deployment environment on **Ubuntu 18.04 Server**.
+The purpose of this repository is to provide instructions to configure a web deployment environment.
 
 The goal is to provide an opinionated, fully tested environment, that just work.
 
