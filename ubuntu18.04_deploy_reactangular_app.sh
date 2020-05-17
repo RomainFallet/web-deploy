@@ -3,7 +3,7 @@
 # Exit script on error
 set -e
 
-### Set up variables for PHP/Symfony app deployment
+### Set up variables for JS/React/Angular app configuration
 
 # Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
 if [[ -z "${email}" ]]; then
@@ -20,12 +20,7 @@ if [[ -z "${appdomain}" ]]; then
     read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
 fi
 
-# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
-if [[ -z "${mysqlpassword}" ]]; then
-    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
-fi
-
-### Set up the web server
+### Set up the web server for JS/React/Angular app
 
 # Create the app directory
 sudo mkdir "/var/www/${appname}"
@@ -48,8 +43,6 @@ sudo a2ensite "${appname}.conf"
 # Restart Apache to make changes available
 sudo service apache2 restart
 
-### Enabling HTTPS & configure for Symfony
-
 # Get a new HTTPS certficate
 sudo certbot certonly --webroot -w "/var/www/${appname}" -d "${appdomain}" -m "${email}" -n --agree-tos
 
@@ -68,20 +61,18 @@ echo "<VirtualHost ${appdomain}:80>
     ServerAdmin ${email}
 
     # Set up document root
-    DocumentRoot /var/www/${appname}/public
-    DirectoryIndex /index.php
+    DocumentRoot /var/www/${appname}
 
-    # Set up Symfony specific configuration
+    # Set up React/Angular specific configuration
     <Directory />
         Require all denied
     </Directory>
-    <Directory /var/www/${appname}/public>
+    <Directory /var/www/${appname}>
         Require all granted
-        php_admin_value open_basedir '/var/www/${appname}'
-        FallbackResource /index.php
-    </Directory>
-    <Directory /var/www/${appname}/public/bundles>
-        FallbackResource disabled
+        Options -MultiViews
+        RewriteEngine on
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.html [QSA,L]
     </Directory>
 
     # Configure separate log files
@@ -96,13 +87,6 @@ echo "<VirtualHost ${appdomain}:80>
 
 # Restart Apache to make changes available
 sudo service apache2 restart
-
-### Set up the database
-
-# Create database and related user for the app and grant permissions
-sudo mysql -e "CREATE DATABASE ${appname};
-CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
-GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
 
 ### Suite
 
