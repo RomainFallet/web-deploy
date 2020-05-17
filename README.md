@@ -101,7 +101,7 @@ _Note: replace "username" and "hostname" by your credentials infos._
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_configure_deploy_env.sh)"
 ```
 
 This will install all softwares needed to host production apps.
@@ -112,14 +112,14 @@ This will install all softwares needed to host production apps.
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_symfony_app.sh)"
 ```
 
 #### JS/React/Angular
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_reactangular_app.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_reactangular_app.sh)"
 ```
 
 #### Connecting to your app

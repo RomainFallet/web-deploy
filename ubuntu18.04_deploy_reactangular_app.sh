@@ -91,4 +91,4 @@ sudo service apache2 restart
 ### Suite
 
 # Get and execute script directly
-appname=${appname} bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_any_app_suite.sh)"
+appname=${appname} bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_any_app_suite.sh)"
