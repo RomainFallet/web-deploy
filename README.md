@@ -125,7 +125,7 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/we
 The previous scripts will create the web server configuration, the database and the SSH user for your app (based on your app name). After that, you will be able to login to your app with:
 
 ```bash
-ssh <appname>@<hostname>
+ssh -p 3022 <appname>@<hostname>
 ```
 
 If you need to deploy your app through CI & CD, follow [these instructions](#transfer-your-files-from-cicd).
@@ -152,6 +152,9 @@ We will disable SSH password authentication, this will prevent all non authorize
 **You must have completed the [Configure an SSH Key](#configure-an-ssh-key) section before completing these steps or you will loose access to your machine.**
 
 ```bash
+# Change default port
+sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+
 # Diable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
@@ -691,7 +694,7 @@ echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatim
 After that, you will be able to login to your app with:
 
 ```bash
-ssh <appname>@<hostname>
+ssh -p 3022 <appname>@<hostname>
 ```
 
 ### Transfer your files from your computer
@@ -727,7 +730,7 @@ Then, **backup the content of these files** (in a password manager app for examp
 You can add the key to the SSH user of the app with:
 
 ```bash
-ssh -t <adminusername>@<hostname> "echo '$(cat ~/.ssh/<appname>.id_rsa.pub)' | sudo tee -a /home/<appname>/.ssh/authorized_keys"
+ssh -p 3022 -t <adminusername>@<hostname> "echo '$(cat ~/.ssh/<appname>.id_rsa.pub)' | sudo tee -a /home/<appname>/.ssh/authorized_keys"
 ```
 
 You can then safely copy this private key to the CI & CD service provider of your choice.

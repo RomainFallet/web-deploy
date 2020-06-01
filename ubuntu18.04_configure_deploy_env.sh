@@ -12,6 +12,9 @@ fi
 
 ### SSH
 
+# Change default port
+sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+
 # Diable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
