@@ -116,7 +116,7 @@ certbot --version
 ### Firewall
 
 # Add rules and activate firewall
-sudo ufw allow OpenSSH
+sudo ufw allow 3022
 sudo ufw allow Postfix
 sudo ufw allow in "Apache Full"
 echo 'y' | sudo ufw enable
