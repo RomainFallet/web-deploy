@@ -12,8 +12,15 @@ fi
 
 ### SSH
 
+# Change default port
+sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+
 # Diable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+
+# Disable root login
+sudo sed -i'.backup' -e 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+sudo sed -i'.backup' -e 's/#PermitRootLogin no/PermitRootLogin no/g' /etc/ssh/sshd_config
 
 # Keep alive client connections
 echo "
@@ -121,7 +128,7 @@ echo "<VirtualHost *:80>
 ### Firewall
 
 # Add rules and activate firewall
-sudo ufw allow OpenSSH
+sudo ufw allow 3022
 sudo ufw allow Postfix
 sudo ufw allow in "Apache Full"
 echo 'y' | sudo ufw enable

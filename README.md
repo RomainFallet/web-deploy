@@ -1,8 +1,6 @@
 # The web deploy instructions kit
 
-![logo-ubuntu](https://user-images.githubusercontent.com/6952638/78182032-b119d300-7465-11ea-9e00-43e3d7265f91.png)
-
-The purpose of this repository is to provide instructions to configure a web deployment environment on **Ubuntu 18.04 Server**.
+The purpose of this repository is to provide instructions to configure a web deployment environment.
 
 The goal is to provide an opinionated, fully tested environment, that just work.
 
@@ -101,7 +99,7 @@ _Note: replace "username" and "hostname" by your credentials infos._
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_configure_deploy_env.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_configure_deploy_env.sh)"
 ```
 
 This will install all softwares needed to host production apps.
@@ -127,7 +125,7 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/we
 The previous scripts will create the web server configuration, the database and the SSH user for your app (based on your app name). After that, you will be able to login to your app with:
 
 ```bash
-ssh <appname>@<hostname>
+ssh -p 3022 <appname>@<hostname>
 ```
 
 If you need to deploy your app through CI & CD, follow [these instructions](#transfer-your-files-from-cicd).
@@ -154,8 +152,16 @@ We will disable SSH password authentication, this will prevent all non authorize
 **You must have completed the [Configure an SSH Key](#configure-an-ssh-key) section before completing these steps or you will loose access to your machine.**
 
 ```bash
-# Diable password authentication
+# Change default port
+sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+
+# Disable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+
+# Disable root login
+sudo sed -i'.backup' -e 's/#PermitRootLogin prohibit-password/PermitRootLogin no/g' /etc/ssh/sshd_config
+sudo sed -i'.backup' -e 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
+sudo sed -i'.backup' -e 's/#PermitRootLogin no/PermitRootLogin no/g' /etc/ssh/sshd_config
 
 # Keep alive client connections
 echo "
@@ -291,7 +297,7 @@ We will enable Ubuntu firewall in order to prevent remote access to our machine.
 
 ```bash
 # Add rules and activate firewall
-sudo ufw allow OpenSSH
+sudo ufw allow 3022
 sudo ufw allow Postfix
 sudo ufw allow in "Apache Full"
 echo 'y' | sudo ufw enable
@@ -693,7 +699,7 @@ echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatim
 After that, you will be able to login to your app with:
 
 ```bash
-ssh <appname>@<hostname>
+ssh -p 3022 <appname>@<hostname>
 ```
 
 ### Transfer your files from your computer
@@ -729,7 +735,7 @@ Then, **backup the content of these files** (in a password manager app for examp
 You can add the key to the SSH user of the app with:
 
 ```bash
-ssh -t <adminusername>@<hostname> "echo '$(cat ~/.ssh/<appname>.id_rsa.pub)' | sudo tee -a /home/<appname>/.ssh/authorized_keys"
+ssh -p 3022 -t <adminusername>@<hostname> "echo '$(cat ~/.ssh/<appname>.id_rsa.pub)' | sudo tee -a /home/<appname>/.ssh/authorized_keys"
 ```
 
 You can then safely copy this private key to the CI & CD service provider of your choice.
