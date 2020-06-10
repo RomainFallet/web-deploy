@@ -554,6 +554,114 @@ echo "<VirtualHost ${appdomain}:80>
 sudo service apache2 restart
 ```
 
+## Manual configuration: configure a NodeJS/NestJS app
+
+### Set up variables for NodeJS/NestJS app configuration
+
+[Back to top ↑](#table-of-contents)
+
+We need to configure some variables in order to reduce repetitions/replacements in the next commands.
+
+```bash
+# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${email}" ]]; then
+    read -r -p "Enter your email (needed to set up email monitoring): " email
+fi
+
+# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appname}" ]]; then
+    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
+fi
+
+# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appdomain}" ]]; then
+    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
+fi
+
+# Ask localport if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${localport}" ]]; then
+    read -r -p "Enter the running local port on which you want requests to be proxied (eg. 3000): " localport
+fi
+
+# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${mysqlpassword}" ]]; then
+    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
+fi
+```
+
+### Set up the web server for NodeJS/NestJS app
+
+[Back to top ↑](#table-of-contents)
+
+```bash
+# Create the app directory
+sudo mkdir "/var/www/${appname}"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/${appname}"
+
+# Activate letsencrypt-webroot conf
+sudo a2ensite letsencrypt-webroot.conf
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+
+# Get a new HTTPS certficate
+sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+
+# Disable letsencrypt-webroot conf
+sudo a2dissite letsencrypt-webroot.conf
+
+# Create app conf
+echo "<VirtualHost ${appdomain}:80>
+    # All we need to do here is redirect to HTTPS
+    RewriteEngine on
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
+
+<VirtualHost ${appdomain}:443>
+    # Set up server name
+    ServerName ${appdomain}
+
+    # Set up server admin email
+    ServerAdmin ${email}
+
+    # Set up document root
+    DocumentRoot /var/www/${appname}
+
+    # Set up NodeJS/NestJS specific configuration
+    <Directory />
+        Require all denied
+    </Directory>
+
+    # Proxy all requests to the running NodeJS app
+    ProxyPass "/" "http://localhost:${localport}/"
+
+    # Configure separate log files
+    ErrorLog /var/log/apache2/${appname}.error.log
+    CustomLog /var/log/apache2/${appname}.access.log combined
+
+    # Configure HTTPS
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+```
+
+### Set up the SQL database
+
+[Back to top ↑](#table-of-contents)
+
+```bash
+# Create database and related user for the app and grant permissions
+sudo mysql -e "CREATE DATABASE ${appname};
+CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
+```
+
 ## Manual configuration: configure a PHP/Symfony app
 
 ### Set up variables for PHP/Symfony app configuration
