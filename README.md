@@ -277,17 +277,8 @@ echo '#!/bin/bash
 certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
 sudo chmod +x /etc/cron.monthly/certbot-renew.sh
 
-# Create a new directory for the webroot challenge
-sudo mkdir "/var/www/letsencrypt-webroot"
-
-# Set ownership to Apache
-sudo chown www-data:www-data "/var/www/letsencrypt-webroot"
-
-# Config webroot challenge
-echo "<VirtualHost *:80>
-  # Set up document root
-  DocumentRoot /var/www/letsencrypt-webroot
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/letsencrypt-webroot.conf" > /dev/null
+# Disable default site
+sudo a2dissite 000-default.conf
 ```
 
 ### Firewall
@@ -499,17 +490,17 @@ sudo mkdir "/var/www/${appname}"
 # Set ownership to Apache
 sudo chown www-data:www-data "/var/www/${appname}"
 
-# Activate letsencrypt-webroot conf
-sudo a2ensite letsencrypt-webroot.conf
+# Activate default conf
+sudo a2ensite 000-default.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Disable letsencrypt-webroot conf
-sudo a2dissite letsencrypt-webroot.conf
+sudo a2dissite 000-default.conf
 
 # Create app conf
 echo "<VirtualHost ${appdomain}:80>
@@ -549,6 +540,9 @@ echo "<VirtualHost ${appdomain}:80>
     SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Activate app conf
+sudo a2ensite "${appname}.conf"
 
 # Restart Apache to make changes available
 sudo service apache2 restart
@@ -601,16 +595,16 @@ sudo mkdir "/var/www/${appname}"
 sudo chown www-data:www-data "/var/www/${appname}"
 
 # Activate letsencrypt-webroot conf
-sudo a2ensite letsencrypt-webroot.conf
+sudo a2ensite 000-default.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Disable letsencrypt-webroot conf
-sudo a2dissite letsencrypt-webroot.conf
+sudo a2dissite 000-default.conf
 
 # Create app conf
 echo "<VirtualHost ${appdomain}:80>
@@ -633,9 +627,11 @@ echo "<VirtualHost ${appdomain}:80>
     <Directory />
         Require all denied
     </Directory>
-
-    # Proxy all requests to the running NodeJS app
-    ProxyPass "/" "http://localhost:${localport}/"
+    <Directory /var/www/${appname}>
+        Require all granted
+        Options None
+        ProxyPass "/" "http://localhost:${localport}/"
+    </Directory>
 
     # Configure separate log files
     ErrorLog /var/log/apache2/${appname}.error.log
@@ -646,6 +642,9 @@ echo "<VirtualHost ${appdomain}:80>
     SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Activate app conf
+sudo a2ensite "${appname}.conf"
 
 # Restart Apache to make changes available
 sudo service apache2 restart
@@ -704,16 +703,16 @@ sudo mkdir "/var/www/${appname}"
 sudo chown www-data:www-data "/var/www/${appname}"
 
 # Activate letsencrypt-webroot conf
-sudo a2ensite letsencrypt-webroot.conf
+sudo a2ensite 000-default.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w /var/www/letsencrypt-webroot -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w /var/www/html -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Disable letsencrypt-webroot conf
-sudo a2dissite letsencrypt-webroot.conf
+sudo a2dissite 000-default.conf
 
 # Create app conf
 echo "<VirtualHost ${appdomain}:80>
@@ -755,6 +754,9 @@ echo "<VirtualHost ${appdomain}:80>
     SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Activate app conf
+sudo a2ensite "${appname}.conf"
 
 # Restart Apache to make changes available
 sudo service apache2 restart
