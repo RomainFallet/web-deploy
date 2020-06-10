@@ -23,13 +23,13 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     7. [Firewall](#firewall)
     8. [Fail2ban](#fail2ban)
     9. [PHP environment (optional)](#php-environment-optional)
+- [Manual configuration: configure an HTML/JS/React/Angular app](#manual-configuration-configure-an-htmljsreactangular-app)
+    1. [Set up variables for HTML/JS/React/Angular app configuration](#set-up-variables-for-htmljsreactangular-app-configuration)
+    2. [Set up the web server for HTML/JS/React/Angular app](#set-up-the-web-server-for-htmljsreactangular-app)
 - [Manual configuration: configure a PHP/Symfony app](#manual-configuration-configure-a-phpsymfony-app)
     1. [Set up variables for PHP/Symfony app configuration](#set-up-variables-for-phpsymfony-app-configuration)
     2. [Set up the web server for PHP/Symfony app](#set-up-the-web-server-for-phpsymfony-app)
     3. [Set up the SQL database](#set-up-the-sql-database)
-- [Manual configuration: configure a JS/React/Angular app](#manual-configuration-configure-a-jsreactangular-app)
-    1. [Set up variables for JS/React/Angular app configuration](#set-up-variables-for-jsreactangular-app-configuration)
-    2. [Set up the web server for JS/React/Angular app](#set-up-the-web-server-for-jsreactangular-app)
 - [Manual configuration: suite (all apps)](#manual-configuration-suite-all-apps)
     1. [Create a new SSH user for the app](#create-a-new-ssh-user-for-the-app)
     2. [Create a chroot jail for this user](#create-a-chroot-jail-for-this-user)
@@ -108,18 +108,18 @@ This will install all softwares needed to host production apps.
 
 ### Configure a new app
 
+#### HTML/JS/React/Angular
+
+```bash
+# Get and execute script directly
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_htmljsreactangular_app.sh)"
+```
+
 #### PHP/Symfony
 
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_symfony_app.sh)"
-```
-
-#### JS/React/Angular
-
-```bash
-# Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_reactangular_app.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy-ubuntu/master/ubuntu18.04_deploy_phpsymfony_app.sh)"
 ```
 
 #### Connecting to your app
@@ -269,6 +269,18 @@ sudo apt install -y certbot
 echo '#!/bin/bash
 certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
 sudo chmod +x /etc/cron.monthly/certbot-renew.sh
+
+# Create a new directory for the webroot challenge
+sudo mkdir "/var/www/letsencrypt-webroot"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/letsencrypt-webroot"
+
+# Config webroot challenge
+echo "<VirtualHost *:80>
+  # Set up document root
+  DocumentRoot /var/www/letsencrypt-webroot
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/letsencrypt-webroot.conf" > /dev/null
 ```
 
 ### Firewall
@@ -453,6 +465,97 @@ if [[ -z "${mysqlpassword}" ]]; then
 fi
 ```
 
+## Manual configuration: configure an HTML/JS/React/Angular app
+
+### Set up variables for HTML/JS/React/Angular app configuration
+
+[Back to top ↑](#table-of-contents)
+
+We need to configure some variables in order to reduce repetitions/replacements in the next commands.
+
+```bash
+# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${email}" ]]; then
+    read -r -p "Enter your email (needed to set up email monitoring): " email
+fi
+
+# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appname}" ]]; then
+    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
+fi
+
+# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appdomain}" ]]; then
+    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
+fi
+```
+
+### Set up the web server for HTML/JS/React/Angular app
+
+[Back to top ↑](#table-of-contents)
+
+```bash
+# Create the app directory
+sudo mkdir "/var/www/${appname}"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/${appname}"
+
+# Activate letsencrypt-webroot conf
+sudo a2ensite letsencrypt-webroot.conf
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+
+# Get a new HTTPS certficate
+sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+
+# Disable letsencrypt-webroot conf
+sudo a2dissite letsencrypt-webroot.conf
+
+# Create app conf
+echo "<VirtualHost ${appdomain}:80>
+    # All we need to do here is redirect to HTTPS
+    RewriteEngine on
+    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
+
+<VirtualHost ${appdomain}:443>
+    # Set up server name
+    ServerName ${appdomain}
+
+    # Set up server admin email
+    ServerAdmin ${email}
+
+    # Set up document root
+    DocumentRoot /var/www/${appname}
+
+    # Set up React/Angular specific configuration
+    <Directory />
+        Require all denied
+    </Directory>
+    <Directory /var/www/${appname}>
+        Require all granted
+        Options None
+        RewriteEngine on
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.html [QSA,L]
+    </Directory>
+
+    # Configure separate log files
+    ErrorLog /var/log/apache2/${appname}.error.log
+    CustomLog /var/log/apache2/${appname}.access.log combined
+
+    # Configure HTTPS
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Restart Apache to make changes available
+sudo service apache2 restart
+```
+
 ### Set up the web server for PHP/Symfony app
 
 [Back to top ↑](#table-of-contents)
@@ -464,25 +567,19 @@ sudo mkdir "/var/www/${appname}"
 # Set ownership to Apache
 sudo chown www-data:www-data "/var/www/${appname}"
 
-# Create an Apache conf file for the app
-echo "<VirtualHost ${appdomain}:80>
-  # Set up server name
-  ServerName ${appdomain}
-
-  # Set up document root
-  DocumentRoot /var/www/${appname}
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
-
-# Activate Apache conf
-sudo a2ensite "${appname}.conf"
+# Activate letsencrypt-webroot conf
+sudo a2ensite letsencrypt-webroot.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/${appname}" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w /var/www/letsencrypt-webroot -d "${appdomain}" -m "${email}" -n --agree-tos
 
-# Replace existing conf
+# Disable letsencrypt-webroot conf
+sudo a2dissite letsencrypt-webroot.conf
+
+# Create app conf
 echo "<VirtualHost ${appdomain}:80>
     # All we need to do here is redirect to HTTPS
     RewriteEngine on
@@ -536,103 +633,6 @@ sudo service apache2 restart
 sudo mysql -e "CREATE DATABASE ${appname};
 CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
 GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
-```
-
-## Manual configuration: configure a JS/React/Angular app
-
-### Set up variables for JS/React/Angular app configuration
-
-[Back to top ↑](#table-of-contents)
-
-We need to configure some variables in order to reduce repetitions/replacements in the next commands.
-
-```bash
-# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${email}" ]]; then
-    read -r -p "Enter your email (needed to set up email monitoring): " email
-fi
-
-# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${appname}" ]]; then
-    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
-fi
-
-# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${appdomain}" ]]; then
-    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
-fi
-```
-
-### Set up the web server for JS/React/Angular app
-
-[Back to top ↑](#table-of-contents)
-
-```bash
-# Create the app directory
-sudo mkdir "/var/www/${appname}"
-
-# Set ownership to Apache
-sudo chown www-data:www-data "/var/www/${appname}"
-
-# Create an Apache conf file for the app
-echo "<VirtualHost ${appdomain}:80>
-  # Set up server name
-  ServerName ${appdomain}
-
-  # Set up document root
-  DocumentRoot /var/www/${appname}
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
-
-# Activate Apache conf
-sudo a2ensite "${appname}.conf"
-
-# Restart Apache to make changes available
-sudo service apache2 restart
-
-# Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/${appname}" -d "${appdomain}" -m "${email}" -n --agree-tos
-
-# Replace existing conf
-echo "<VirtualHost ${appdomain}:80>
-    # All we need to do here is redirect to HTTPS
-    RewriteEngine on
-    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
-</VirtualHost>
-
-<VirtualHost ${appdomain}:443>
-    # Set up server name
-    ServerName ${appdomain}
-
-    # Set up server admin email
-    ServerAdmin ${email}
-
-    # Set up document root
-    DocumentRoot /var/www/${appname}
-
-    # Set up React/Angular specific configuration
-    <Directory />
-        Require all denied
-    </Directory>
-    <Directory /var/www/${appname}>
-        Require all granted
-        Options -MultiViews
-        RewriteEngine on
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteRule ^ index.html [QSA,L]
-    </Directory>
-
-    # Configure separate log files
-    ErrorLog /var/log/apache2/${appname}.error.log
-    CustomLog /var/log/apache2/${appname}.access.log combined
-
-    # Configure HTTPS
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
-
-# Restart Apache to make changes available
-sudo service apache2 restart
 ```
 
 ## Manual configuration: suite (all apps)

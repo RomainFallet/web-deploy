@@ -106,6 +106,18 @@ sudo apt install -y certbot
 
 certbot --version
 
+# Create a new directory for the webroot challenge
+sudo mkdir "/var/www/letsencrypt-webroot"
+
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/letsencrypt-webroot"
+
+# Config webroot challenge
+echo "<VirtualHost *:80>
+  # Set up document root
+  DocumentRoot /var/www/letsencrypt-webroot
+</VirtualHost>" | sudo tee "/etc/apache2/sites-available/letsencrypt-webroot.conf" > /dev/null
+
 ### Firewall
 
 # Add rules and activate firewall

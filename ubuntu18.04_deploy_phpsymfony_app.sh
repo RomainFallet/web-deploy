@@ -33,25 +33,17 @@ sudo mkdir "/var/www/${appname}"
 # Set ownership to Apache
 sudo chown www-data:www-data "/var/www/${appname}"
 
-# Create an Apache conf file for the app
-echo "<VirtualHost ${appdomain}:80>
-  # Set up server name
-  ServerName ${appdomain}
-
-  # Set up document root
-  DocumentRoot /var/www/${appname}
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
-
-# Activate Apache conf
-sudo a2ensite "${appname}.conf"
+# Activate letsencrypt-webroot conf
+sudo a2ensite letsencrypt-webroot.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
-### Enabling HTTPS & configure for Symfony
-
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/${appname}" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+
+# Disable letsencrypt-webroot conf
+sudo a2dissite letsencrypt-webroot.conf
 
 # Replace existing conf
 echo "<VirtualHost ${appdomain}:80>
