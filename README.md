@@ -21,6 +21,7 @@ The goal is to provide an opinionated, fully tested environment, that just work.
     7. [Firewall](#firewall)
     8. [Fail2ban](#fail2ban)
     9. [PHP environment (optional)](#php-environment-optional)
+    10. [NodeJS environment (optional)](#nodejs-environment-optional)
 - [Manual configuration: configure an HTML/JS/React/Angular app](#manual-configuration-configure-an-htmljsreactangular-app)
     1. [Set up variables for HTML/JS/React/Angular app configuration](#set-up-variables-for-htmljsreactangular-app-configuration)
     2. [Set up the web server for HTML/JS/React/Angular app](#set-up-the-web-server-for-htmljsreactangular-app)
@@ -441,34 +442,25 @@ curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
 sudo apt install -y mariadb-server-10.4
 ```
 
-## Manual configuration: configure a PHP/Symfony app
-
-### Set up variables for PHP/Symfony app configuration
+### NodeJS environment (optional)
 
 [Back to top ↑](#table-of-contents)
 
-We need to configure some variables in order to reduce repetitions/replacements in the next commands.
-
 ```bash
-# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${email}" ]]; then
-    read -r -p "Enter your email (needed to set up email monitoring): " email
-fi
+# Add NodeJS official repository and update packages list
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 
-# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${appname}" ]]; then
-    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
-fi
+# Install
+sudo apt install -y nodejs
 
-# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
-if [[ -z "${appdomain}" ]]; then
-    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
-fi
+# Install PM2 process manager
+sudo npm install -g pm2@4.4.0
 
-# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
-if [[ -z "${mysqlpassword}" ]]; then
-    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
-fi
+# Add MariaDB official repository
+curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+
+# Install
+sudo apt install -y mariadb-server-10.4
 ```
 
 ## Manual configuration: configure an HTML/JS/React/Angular app
@@ -560,6 +552,36 @@ echo "<VirtualHost ${appdomain}:80>
 
 # Restart Apache to make changes available
 sudo service apache2 restart
+```
+
+## Manual configuration: configure a PHP/Symfony app
+
+### Set up variables for PHP/Symfony app configuration
+
+[Back to top ↑](#table-of-contents)
+
+We need to configure some variables in order to reduce repetitions/replacements in the next commands.
+
+```bash
+# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${email}" ]]; then
+    read -r -p "Enter your email (needed to set up email monitoring): " email
+fi
+
+# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appname}" ]]; then
+    read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
+fi
+
+# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+if [[ -z "${appdomain}" ]]; then
+    read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
+fi
+
+# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
+if [[ -z "${mysqlpassword}" ]]; then
+    read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
+fi
 ```
 
 ### Set up the web server for PHP/Symfony app

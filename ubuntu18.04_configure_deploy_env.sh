@@ -226,16 +226,16 @@ sudo service fail2ban restart
 
 fail2ban-client -V
 
-### PHP/Symfony environment (optional)
+### PHP environment (optional)
 
-# Ask for PHP/Symfony environment
-if [[ -z "${phpsymfony}" ]]; then
-    read -r -p "Do you want to install PHP environment? [N/y]: " phpsymfony
-    phpsymfony=${phpsymfony:-n}
-    phpsymfony=$(echo "${phpsymfony}" | awk '{print tolower($0)}')
+# Ask for PHP/ environment
+if [[ -z "${php}" ]]; then
+    read -r -p "Do you want to install PHP environment? [N/y]: " php
+    php=${php:-n}
+    php=$(echo "${php}" | awk '{print tolower($0)}')
 fi
 
-if [[ "${phpsymfony}" == 'y' ]]; then
+if [[ "${php}" == 'y' ]]; then
   # Add PHP official repository
   sudo add-apt-repository -y ppa:ondrej/php
 
@@ -266,6 +266,32 @@ if [[ "${phpsymfony}" == 'y' ]]; then
   # Apply PHP configuration to Apache
   sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
   sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
+
+  # Add MariaDB official repository
+  curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+
+  # Install
+  sudo apt install -y mariadb-server-10.4
+fi
+
+### NodeJS environment (optional)
+
+# Ask for NodeJS environment
+if [[ -z "${nodejs}" ]]; then
+    read -r -p "Do you want to install NodeJS environment? [N/y]: " nodejs
+    nodejs=${nodejs:-n}
+    nodejs=$(echo "${nodejs}" | awk '{print tolower($0)}')
+fi
+
+if [[ "${nodejs}" == 'y' ]]; then
+  # Add NodeJS official repository and update packages list
+  curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+
+  # Install
+  sudo apt install -y nodejs
+
+  # Install PM2 process manager
+  sudo npm install -g pm2@4.4.0
 
   # Add MariaDB official repository
   curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
