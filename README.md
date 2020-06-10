@@ -248,6 +248,7 @@ sudo apt install -y apache2
 # Enable modules
 sudo a2enmod ssl
 sudo a2enmod rewrite
+sudo a2enmod proxy
 
 # Set umask of the Apache user
 echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
@@ -627,11 +628,7 @@ echo "<VirtualHost ${appdomain}:80>
     <Directory />
         Require all denied
     </Directory>
-    <Directory /var/www/${appname}>
-        Require all granted
-        Options None
-        ProxyPass "/" "http://localhost:${localport}/"
-    </Directory>
+    ProxyPass "/" "http://localhost:${localport}/"
 
     # Configure separate log files
     ErrorLog /var/log/apache2/${appname}.error.log
