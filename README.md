@@ -253,6 +253,9 @@ sudo a2enmod proxy
 # Set umask of the Apache user
 echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
 
+# Disable default site
+sudo a2dissite 000-default.conf
+
 # Restart Apache
 sudo service apache2 restart
 ```
@@ -277,9 +280,6 @@ sudo apt install -y certbot
 echo '#!/bin/bash
 certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
 sudo chmod +x /etc/cron.monthly/certbot-renew.sh
-
-# Disable default site
-sudo a2dissite 000-default.conf
 ```
 
 ### Firewall
