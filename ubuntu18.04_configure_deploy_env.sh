@@ -117,7 +117,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
 sudo cp /etc/postfix/main.cf /etc/postfix/.main.cf.backup
 sudo cp /etc/aliases /etc/.aliases.backup
 
-echo "permit_sasl_authenticated defer_unauth_destination
+# Update main config file
+echo "smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 myhostname = ${hostname}
 relayhost = [${smtphostname}]:${smtpport}
 alias_maps = hash:/etc/aliases
@@ -130,21 +131,31 @@ smtp_sasl_auth_enable = yes
 smtp_sasl_security_options = noanonymous
 smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
 smtp_use_tls = yes
-smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt" | sudo tee -a /etc/postfix/main.cf
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+sender_canonical_classes = envelope_sender, header_sender
+sender_canonical_maps =  regexp:/etc/postfix/sender_canonical_maps
+smtp_header_checks = regexp:/etc/postfix/header_check" | sudo tee -a /etc/postfix/main.cf > /dev/null
 
-echo "[${smtphostname}]:${smtpport} ${smtpusername}:${smtppassword}" | sudo tee /etc/postfix/sasl_passwd
-
-# Create the hash db file for Postfix
+# Save SMTP credentials
+echo "[${smtphostname}]:${smtpport} ${smtpusername}:${smtppassword}" | sudo tee /etc/postfix/sasl_passwd > /dev/null
 sudo postmap /etc/postfix/sasl_passwd
-
-# Secure password and database files
 sudo chown root:root /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
 sudo chmod 0600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+
+# Remap sender address
+echo "/.+/    ${smtpusername}" | sudo tee /etc/postfix/sender_canonical_maps > /dev/null
+echo "/From:.*/ REPLACE From: ${smtpusername}" | sudo tee /etc/postfix/header_check > /dev/null
+sudo postmap /etc/postfix/sender_canonical_maps
+sudo postmap /etc/postfix/header_check
 
 # Forwarding System Mail to your email address
 echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
 
+# Enable aliases
 sudo newaliases
+
+# Restart Postfix
+sudo service postfix restart
 
 # Display Postfix version
 postconf mail_version
