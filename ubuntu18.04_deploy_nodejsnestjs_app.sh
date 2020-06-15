@@ -3,29 +3,34 @@
 # Exit script on error
 set -e
 
-### Set up variables for PHP/Symfony app deployment
+### Set up variables for NodeJS/NestJS app configuration
 
-# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+# Ask email if not already set
 if [[ -z "${email}" ]]; then
     read -r -p "Enter your email (needed to set up email monitoring): " email
 fi
 
-# Ask app name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+# Ask app name if not already set
 if [[ -z "${appname}" ]]; then
     read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
 fi
 
-# Ask domain name if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+# Ask domain name if not already set
 if [[ -z "${appdomain}" ]]; then
     read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
 fi
 
-# Ask database password (copy and paste all stuffs from "if" to "fi" in your terminal)
+# Ask localport if not already set
+if [[ -z "${localport}" ]]; then
+    read -r -p "Enter the running local port on which you want requests to be proxied (eg. 3000): " localport
+fi
+
+# Ask database password
 if [[ -z "${mysqlpassword}" ]]; then
     read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
 fi
 
-### Set up the web server
+### Set up the web server for NodeJS/NestJS app
 
 # Create the app directory
 sudo mkdir "/var/www/${appname}"
@@ -45,7 +50,7 @@ sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email
 # Disable letsencrypt-webroot conf
 sudo a2dissite 000-default.conf
 
-# Replace existing conf
+# Create app conf
 echo "<VirtualHost ${appdomain}:80>
     # All we need to do here is redirect to HTTPS
     RewriteEngine on
@@ -60,21 +65,14 @@ echo "<VirtualHost ${appdomain}:80>
     ServerAdmin ${email}
 
     # Set up document root
-    DocumentRoot /var/www/${appname}/public
-    DirectoryIndex /index.php
+    DocumentRoot /var/www/${appname}
 
-    # Set up Symfony specific configuration
+    # Set up NodeJS/NestJS specific configuration
     <Directory />
         Require all denied
     </Directory>
-    <Directory /var/www/${appname}/public>
-        Require all granted
-        php_admin_value open_basedir '/var/www/${appname}'
-        FallbackResource /index.php
-    </Directory>
-    <Directory /var/www/${appname}/public/bundles>
-        FallbackResource disabled
-    </Directory>
+    Header set Access-Control-Allow-Origin '*'
+    ProxyPass / http://localhost:${localport}/
 
     # Configure separate log files
     ErrorLog /var/log/apache2/${appname}.error.log
@@ -85,6 +83,9 @@ echo "<VirtualHost ${appdomain}:80>
     SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
+
+# Activate app conf
+sudo a2ensite "${appname}.conf"
 
 # Restart Apache to make changes available
 sudo service apache2 restart

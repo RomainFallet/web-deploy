@@ -28,17 +28,17 @@ sudo mkdir "/var/www/${appname}"
 # Set ownership to Apache
 sudo chown www-data:www-data "/var/www/${appname}"
 
-# Activate letsencrypt-webroot conf
-sudo a2ensite letsencrypt-webroot.conf
+# Activate default conf
+sudo a2ensite 000-default.conf
 
 # Restart Apache to make changes available
 sudo service apache2 restart
 
 # Get a new HTTPS certficate
-sudo certbot certonly --webroot -w "/var/www/letsencrypt-webroot" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
 
-# Disable letsencrypt-webroot conf
-sudo a2dissite letsencrypt-webroot.conf
+# Disable default conf
+sudo a2dissite 000-default.conf
 
 # Replace existing conf
 echo "<VirtualHost ${appdomain}:80>
@@ -63,7 +63,6 @@ echo "<VirtualHost ${appdomain}:80>
     </Directory>
     <Directory /var/www/${appname}>
         Require all granted
-        Options -MultiViews
         RewriteEngine on
         RewriteCond %{REQUEST_FILENAME} !-f
         RewriteRule ^ index.html [QSA,L]

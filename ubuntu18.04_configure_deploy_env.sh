@@ -5,20 +5,58 @@ set -e
 
 ### Set up variables
 
-# Ask email if not already set (copy and paste all stuffs between "if" and "fi" in your terminal)
+# Ask email if not already set
 if [[ -z "${email}" ]]; then
     read -r -p "Enter your email (needed to set up email monitoring): " email
 fi
+
+# Ask hostname if not already set
+if [[ -z "${hostname}" ]]; then
+    read -r -p "Enter your hostname (it must be a domain name pointing to this machine IP address): " hostname
+fi
+
+# Ask for remote SMTP
+if [[ -z "${remotesmtp}" ]]; then
+    read -r -p "Do you want to send monitoring emails from a remote SMTP server (recommended) [Y/n]: " remotesmtp
+    remotesmtp=${remotesmtp:-y}
+    remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
+
+    # Ask SMTP hostname if not already set
+    if [[ -z "${smtphostname}" ]]; then
+        read -r -p "Enter your remote SMTP server hostname: " smtphostname
+    fi
+
+    # Ask SMTP port if not already set
+    if [[ -z "${smtpport}" ]]; then
+        read -r -p "Enter your remote SMTP server port: " smtpport
+    fi
+
+    # Ask SMTP username if not already set
+    if [[ -z "${smtpusername}" ]]; then
+        read -r -p "Enter your remote SMTP server username: " smtpusername
+    fi
+
+    # Ask SMTP username if not already set
+    if [[ -z "${smtppassword}" ]]; then
+        read -r -p "Enter your SMTP password: " smtppassword
+    fi
+fi
+
+### Hostname
+
+# Change hostname
+sudo hostnamectl set-hostname "${hostname}"
 
 ### SSH
 
 # Change default port
 sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
 
-# Diable password authentication
+# Disable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
 # Disable root login
+sudo sed -i'.backup' -e 's/PermitRootLogin prohibit-password/PermitRootLogin no/g' /etc/ssh/sshd_config
 sudo sed -i'.backup' -e 's/PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
 sudo sed -i'.backup' -e 's/#PermitRootLogin no/PermitRootLogin no/g' /etc/ssh/sshd_config
 
@@ -63,8 +101,8 @@ sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Remove-Unused-Dependencies "false"
 # Reboot when needed
 sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Automatic-Reboot "false";,Unattended-Upgrade::Automatic-Reboot "true";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
-# Set reboot time to 3 AM
-sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Automatic-Reboot-Time "02:00";,Unattended-Upgrade::Automatic-Reboot-Time "03:00";,g' /etc/apt/apt.conf.d/50unattended-upgrades
+# Set reboot time to 5 AM
+sudo sed -i'.tmp' -e 's,//Unattended-Upgrade::Automatic-Reboot-Time "02:00";,Unattended-Upgrade::Automatic-Reboot-Time "05:00";,g' /etc/apt/apt.conf.d/50unattended-upgrades
 
 # Remove temporary files
 sudo rm /etc/apt/apt.conf.d/10periodic.tmp
@@ -75,14 +113,43 @@ sudo rm /etc/apt/apt.conf.d/50unattended-upgrades.tmp
 # Install
 sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
 
-# Make a backup of the config file
+# Make a backup of the config files
+sudo cp /etc/postfix/main.cf /etc/postfix/.main.cf.backup
 sudo cp /etc/aliases /etc/.aliases.backup
+
+echo "permit_sasl_authenticated defer_unauth_destination
+myhostname = ${hostname}
+relayhost = [${smtphostname}]:${smtpport}
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = ipv4
+smtp_sasl_auth_enable = yes
+smtp_sasl_security_options = noanonymous
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_use_tls = yes
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt" | sudo tee -a /etc/postfix/main.cf
+
+echo "[${smtphostname}]:${smtpport} ${smtpusername}:${smtppassword}" | sudo tee /etc/postfix/sasl_passwd
+
+# Create the hash db file for Postfix
+sudo postmap /etc/postfix/sasl_passwd
+
+# Secure password and database files
+sudo chown root:root /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+sudo chmod 0600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
 
 # Forwarding System Mail to your email address
 echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
+
 sudo newaliases
 
+# Display Postfix version
 postconf mail_version
+
+echo "Email monitoring is enabled for your machine: ${hostname}." | mail -s "Email monitoring is enabled." "${email}"
 
 ### Apache 2
 
@@ -92,9 +159,15 @@ sudo apt install -y apache2
 # Enable modules
 sudo a2enmod ssl
 sudo a2enmod rewrite
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod headers
 
 # Set umask of the Apache user
 echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
+
+# Disable default site
+sudo a2dissite 000-default.conf
 
 # Restart Apache
 sudo service apache2 restart
@@ -111,19 +184,12 @@ sudo add-apt-repository -y ppa:certbot/certbot
 # Install
 sudo apt install -y certbot
 
+# Check certificates renewal every month
+echo '#!/bin/bash
+certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
+sudo chmod +x /etc/cron.monthly/certbot-renew.sh
+
 certbot --version
-
-# Create a new directory for the webroot challenge
-sudo mkdir "/var/www/letsencrypt-webroot"
-
-# Set ownership to Apache
-sudo chown www-data:www-data "/var/www/letsencrypt-webroot"
-
-# Config webroot challenge
-echo "<VirtualHost *:80>
-  # Set up document root
-  DocumentRoot /var/www/letsencrypt-webroot
-</VirtualHost>" | sudo tee "/etc/apache2/sites-available/letsencrypt-webroot.conf" > /dev/null
 
 ### Firewall
 
@@ -268,7 +334,7 @@ if [[ "${php}" == 'y' ]]; then
   sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
 
   # Add MariaDB official repository
-  curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+  test -f /etc/apt/sources.list.d/mariadb.list || curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
 
   # Install
   sudo apt install -y mariadb-server-10.4
@@ -294,7 +360,7 @@ if [[ "${nodejs}" == 'y' ]]; then
   sudo npm install -g pm2@4.4.0
 
   # Add MariaDB official repository
-  curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+  test -f /etc/apt/sources.list.d/mariadb.list || curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
 
   # Install
   sudo apt install -y mariadb-server-10.4
