@@ -169,6 +169,13 @@ bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/we
 bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_phpsymfony_app.sh)"
 ```
 
+#### PHP/Nextcloud
+
+```bash
+# Get and execute script directly
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_phpnextcloud_app.sh)"
+```
+
 #### Connecting to your app
 
 The previous scripts will create the web server configuration, the database and the SSH user for your app (based on your app name). After that, you will be able to login to your app with:
