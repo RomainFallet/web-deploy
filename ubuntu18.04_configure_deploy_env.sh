@@ -49,9 +49,6 @@ sudo hostnamectl set-hostname "${hostname}"
 
 ### SSH
 
-# Change default port
-sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
-
 # Disable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
@@ -242,7 +239,7 @@ certbot --version
 ### Firewall
 
 # Add rules and activate firewall
-sudo ufw allow 3022
+sudo ufw allow OpenSSH
 sudo ufw allow Postfix
 sudo ufw allow in "Apache Full"
 echo 'y' | sudo ufw enable
