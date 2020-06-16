@@ -86,6 +86,9 @@ echo "<VirtualHost ${appdomain}:80>
     SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
 </VirtualHost>" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
 
+# Activate app conf
+sudo a2ensite "${appname}.conf"
+
 # Restart Apache to make changes available
 sudo service apache2 restart
 
