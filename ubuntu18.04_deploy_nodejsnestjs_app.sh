@@ -33,7 +33,7 @@ fi
 ### Set up the web server for NodeJS/NestJS app
 
 # Create the app directory
-sudo mkdir "/var/www/${appname}"
+sudo mkdir -p "/var/www/${appname}"
 
 # Set ownership to Apache
 sudo chown www-data:www-data "/var/www/${appname}"
