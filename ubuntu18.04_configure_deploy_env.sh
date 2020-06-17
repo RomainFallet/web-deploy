@@ -353,8 +353,11 @@ if [[ "${php}" == 'y' ]]; then
   # Install PHP
   sudo apt install -y php7.3
 
+  # Install Redis for PHP cache
+  sudo apt install -y redis-server
+
   # Install extensions
-  sudo apt install -y php7.3-mbstring php7.3-mysql php7.3-xml php7.3-curl php7.3-zip php7.3-intl php7.3-gd
+  sudo apt install -y php7.3-mbstring php7.3-mysql php7.3-xml php7.3-curl php7.3-zip php7.3-intl php7.3-gd php-redis
 
   # Make a backup of the config file
   phpinipath=$(php -r "echo php_ini_loaded_file();")
