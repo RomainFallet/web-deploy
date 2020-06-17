@@ -35,4 +35,4 @@ sudo username="${appname}" use_basic_commands=n bash -c "$(wget --no-cache -O- h
 sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
-echo "/var/www/${appname} /home/jails/${appname}/home/${appname} ext4 rw,relatime,data=ordered 0 0" | sudo tee -a /etc/fstab > /dev/null
+echo "/var/www/${appname} /home/jails/${appname}/home/${appname} none rw,bind 0 0" | sudo tee -a /etc/fstab > /dev/null
