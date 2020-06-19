@@ -42,6 +42,11 @@ if [[ -z "${remotesmtp}" ]]; then
     fi
 fi
 
+### Timezone
+
+# Change timezone
+sudo timedatectl set-timezone Europe/Paris
+
 ### Hostname
 
 # Change hostname
