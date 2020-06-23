@@ -46,13 +46,16 @@ sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email
 sudo a2dissite 000-default.conf
 
 # Replace existing conf
-echo "<VirtualHost ${appdomain}:80>
+echo "<VirtualHost *:80>
+    # Set up server name
+    ServerName ${appdomain}
+
     # All we need to do here is redirect to HTTPS
     RewriteEngine on
     RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
 </VirtualHost>
 
-<VirtualHost ${appdomain}:443>
+<VirtualHost *:443>
     # Set up server name
     ServerName ${appdomain}
 
