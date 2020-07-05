@@ -418,7 +418,7 @@ if [[ "${nodejs}" == 'y' ]]; then
   sudo npm install -g pm2@4.4.0
 
   # Add MariaDB official repository
-  test -f /etc/apt/sources.list.d/mariadb.list || curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
+  test -f /etc/apt/sources.list.d/mariadb.list || curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash -s -- --mariadb-server-version=mariadb-10.4
 
   # Install
   sudo apt install -y mariadb-server-10.4
