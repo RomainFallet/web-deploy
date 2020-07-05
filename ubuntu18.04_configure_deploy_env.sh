@@ -56,6 +56,9 @@ sudo hostnamectl set-hostname "${hostname}"
 
 ### SSH
 
+# CHange default port
+sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+
 # Disable password authentication
 sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
