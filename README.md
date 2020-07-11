@@ -98,13 +98,13 @@ _SSH client is enabled by default on Windows since the 2018 April update (1804).
 Before going any further, you need to generate an SSH key and add it to your server machine.
 
 ```bash
-ssh-keygen -t rsa -b 4096 -N ''
+ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/id_rsa
 ```
 
 Then add it to your machine by using:
 
 ```bash
-ssh <username>@<ipAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee -a ~/.ssh/authorized_keys"
+ssh <yourUserName>@<yourIpAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee -a ~/.ssh/authorized_keys > /dev/null && chmod 400 ~/.ssh/id_rsa*"
 ```
 
 ### Point your domain names to your machine IP address
