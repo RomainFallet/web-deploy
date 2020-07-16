@@ -73,6 +73,7 @@ echo "<VirtualHost *:80>
     <Directory /var/www/${appname}/public>
         Require all granted
         php_admin_value open_basedir '/var/www/${appname}'
+        php_admin_value upload_tmp_dir '/var/www/${appname}/tmp'
         FallbackResource /index.php
     </Directory>
     <Directory /var/www/${appname}/public/bundles>
