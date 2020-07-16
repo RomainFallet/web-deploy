@@ -100,6 +100,11 @@ Unattended-Upgrade::Remove-Unused-Dependencies \"true\";
 Unattended-Upgrade::Automatic-Reboot \"true\";
 Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";" | sudo tee /etc/apt/apt.conf.d/50unattended-upgrades > /dev/null
 
+### Default umask
+
+# Change default system umask
+sudo sed -E 's/UMASK(\s+)022/UMASK\1002/g' /etc/login.defs
+
 ### Postfix
 
 # Install
