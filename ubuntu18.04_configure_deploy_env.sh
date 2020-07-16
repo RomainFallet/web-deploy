@@ -57,15 +57,38 @@ sudo hostnamectl set-hostname "${hostname}"
 ### SSH
 
 # Change default port
-sudo sed -i'.backup' -e 's/#Port 22/Port 3022/g' /etc/ssh/sshd_config
+sshportconfig='Port 3022'
+if ! sudo grep "^${sshportconfig}" /etc/ssh/sshd_config > /dev/null
+then
+  sudo sed -i'.backup' -E "s/#*Port\s+[0-9]+/${sshportconfig}/g" /etc/ssh/sshd_config
+fi
+if ! sudo grep "^${sshportconfig}" /etc/ssh/sshd_config > /dev/null
+then
+  echo "${sshportconfig}" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+fi
 
 # Disable password authentication
-sudo sed -i'.backup' -e 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+sshpassconfig='PasswordAuthentication no'
+sudo sed -i'.backup' -E "s/#*PasswordAuthentication\s+(\w+)/PasswordAuthentication no/g" /etc/ssh/sshd_config
+if ! sudo grep "^${sshpassconfig}" /etc/ssh/sshd_config > /dev/null
+then
+  echo "${sshpassconfig}" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+fi
 
 # Keep alive client connections
-echo "
-ClientAliveInterval 120
-ClientAliveCountMax 3" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+sshclientintervalconfig='ClientAliveInterval 120'
+sudo sed -i'.backup' -E "s/#*ClientAliveInterval\s+([0-9]+)/ClientAliveInterval 120/g" /etc/ssh/sshd_config
+if ! sudo grep "^${sshclientintervalconfig}" /etc/ssh/sshd_config > /dev/null
+then
+  echo "${sshclientintervalconfig}" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+fi
+
+sshclientcountconfig='ClientAliveCountMax 3'
+sudo sed -i'.backup' -E "s/#*ClientAliveCountMax\s+([0-9]+)/ClientAliveCountMax 3/g" /etc/ssh/sshd_config
+if ! sudo grep "^${sshclientcountconfig}" /etc/ssh/sshd_config > /dev/null
+then
+  echo "${sshclientcountconfig}" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+fi
 
 # Restart SSH
 sudo service ssh restart
@@ -103,7 +126,7 @@ Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";" | sudo tee /etc/apt/apt.co
 ### Default umask
 
 # Change default system umask
-sudo sed -E 's/UMASK(\s+)022/UMASK\1002/g' /etc/login.defs
+sudo sed -E 's/UMASK(\s+)([0-9]+)/UMASK\1002/g' /etc/login.defs
 
 ### Postfix
 
@@ -209,7 +232,11 @@ sudo a2enmod proxy_http
 sudo a2enmod headers
 
 # Set umask of the Apache user
-echo "umask 002" | sudo tee -a /etc/apache2/envvars > /dev/null
+umaskconfig='umask 002'
+if ! sudo grep "^${umaskconfig}" /etc/apache2/envvars > /dev/null
+then
+  echo "${umaskconfig}" | sudo tee -a /etc/apache2/envvars > /dev/null
+fi
 
 # Disable default site
 sudo a2dissite 000-default.conf
@@ -256,27 +283,22 @@ echo "[DEFAULT]
 findtime = 3600
 bantime = 86400
 destemail = ${email}
-action = %(action_mwl)s" | sudo tee /etc/fail2ban/jail.local > /dev/null
+action = %(action_mwl)s
 
-echo "
 [sshd]
 enabled = true
 port = ssh
 filter = sshd
 logpath = /var/log/auth.log
-maxretry = 3" | sudo tee -a /etc/fail2ban/jail.local > /dev/null
+maxretry = 3
 
-# Add Postfix configuration
-echo "
 [postfix]
 enabled  = true
 port     = smtp
 filter   = postfix
 logpath  = /var/log/mail.log
-maxretry = 5" | sudo tee -a /etc/fail2ban/jail.local > /dev/null
+maxretry = 5
 
-# Add Apache configuration
-echo "
 [apache]
 enabled  = true
 port     = http,https
@@ -330,7 +352,7 @@ maxretry = 2
 enabled = true
 port    = http,https
 filter  = php-url-fopen
-logpath = /var/log/apache*/*access.log" | sudo tee -a /etc/fail2ban/jail.local > /dev/null
+logpath = /var/log/apache*/*access.log" | sudo tee /etc/fail2ban/jail.local > /dev/null
 
 # Restart Fail2ban
 sudo service fail2ban restart
@@ -364,12 +386,12 @@ if [[ "${php}" == 'y' ]]; then
   sudo cp "${phpinipath}" "$(dirname "${phpinipath}")/.php.ini.backup"
 
   # Update some configuration in php.ini
-  sudo sed -i'.tmp' -e 's/post_max_size = 8M/post_max_size = 64M/g' "${phpinipath}"
-  sudo sed -i'.tmp' -e 's/upload_max_filesize = 8M/upload_max_filesize = 64M/g' "${phpinipath}"
-  sudo sed -i'.tmp' -e 's/memory_limit = 128M/memory_limit = 512M/g' "${phpinipath}"
+  sudo sed -i'.tmp' -E 's/;*\s*post_max_size\s=\s*[0-8]+M/post_max_size = 64M/g' "${phpinipath}"
+  sudo sed -i'.tmp' -E 's/;*\s*upload_max_filesize\s=\s*[0-8]+M/upload_max_filesize = 64M/g' "${phpinipath}"
+  sudo sed -i'.tmp' -E 's/;*\s*memory_limit\s=\s*-*[0-8]+M*/memory_limit = 512M/g' "${phpinipath}"
 
   # Disable functions that can causes security breaches
-  sudo sed -i'.tmp' -e 's/disable_functions =/disable_functions = error_reporting,ini_set,exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source/g' "${phpinipath}"
+  sudo sed -i'.tmp' -E 's/;*\s*disable_functions\s=\s*(\w+)/disable_functions = error_reporting,ini_set,exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source/g' "${phpinipath}"
 
   # Replace default PHP installation in $PATH
   sudo update-alternatives --set php /usr/bin/php7.3
