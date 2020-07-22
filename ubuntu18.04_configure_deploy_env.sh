@@ -126,7 +126,7 @@ Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";" | sudo tee /etc/apt/apt.co
 ### Default umask
 
 # Change default system umask
-sudo sed -E 's/UMASK(\s+)([0-9]+)/UMASK\1002/g' /etc/login.defs
+sudo sed -i'.backup' -E 's/UMASK(\s+)([0-9]+)/UMASK\1002/g' /etc/login.defs
 
 ### Postfix
 
