@@ -140,8 +140,7 @@ sudo cp /etc/aliases /etc/.aliases.backup
 
 if [[ "${remotesmtp}" == 'y' ]]; then
 # Update main config file
-echo "
-# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+echo "# See /usr/share/postfix/main.cf.dist for a commented, more complete version
 
 
 # Debian specific:  Specifying a file name will cause the first
@@ -155,7 +154,7 @@ biff = no
 # appending .domain is the MUA's job.
 append_dot_mydomain = no
 
-# Uncomment the next line to generate "delayed mail" warnings
+# Uncomment the next line to generate \"delayed mail\" warnings
 #delay_warning_time = 4h
 
 readme_directory = no
@@ -219,8 +218,16 @@ postconf mail_version
 
 echo "Email monitoring is enabled for your machine: ${hostname}." | mail -s "Email monitoring is enabled." "${email}"
 
-### Apache 2
+### Apache web server (optional)
 
+# Ask for apache
+if [[ -z "${apache}" ]]; then
+    read -r -p "Do you want to install Apache webserver & other related utilities? [N/y]: " apache
+    php=${apache:-n}
+    php=$(echo "${apache}" | awk '{print tolower($0)}')
+fi
+
+if [[ "${apache}" == 'y' ]]; then
 # Install
 sudo apt install -y apache2
 
@@ -262,13 +269,14 @@ certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
 sudo chmod +x /etc/cron.monthly/certbot-renew.sh
 
 certbot --version
+fi
 
 ### Firewall
 
 # Add rules and activate firewall
 sudo ufw allow 3022
 sudo ufw allow Postfix
-sudo ufw allow in "Apache Full"
+"${apache}" == 'y' && sudo ufw allow in "Apache Full"
 echo 'y' | sudo ufw enable
 
 sudo ufw status
@@ -279,7 +287,7 @@ sudo ufw status
 sudo apt install -y fail2ban
 
 # Add default configuration
-echo "[DEFAULT]
+fail2banconfig="[DEFAULT]
 findtime = 3600
 bantime = 86400
 destemail = ${email}
@@ -298,7 +306,10 @@ port     = smtp
 filter   = postfix
 logpath  = /var/log/mail.log
 maxretry = 5
+"
 
+if [[ "${apache}" == 'y' ]]; then
+fail2banconfig+="
 [apache]
 enabled  = true
 port     = http,https
@@ -352,7 +363,10 @@ maxretry = 2
 enabled = true
 port    = http,https
 filter  = php-url-fopen
-logpath = /var/log/apache*/*access.log" | sudo tee /etc/fail2ban/jail.local > /dev/null
+logpath = /var/log/apache*/*access.log"
+fi
+
+echo "${fail2banconfig}" | sudo tee /etc/fail2ban/jail.local > /dev/null
 
 # Restart Fail2ban
 sudo service fail2ban restart
