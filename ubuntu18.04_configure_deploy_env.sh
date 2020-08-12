@@ -15,33 +15,45 @@ if [[ -z "${hostname}" ]]; then
     read -r -p "Enter your hostname (it must be a domain name pointing to this machine IP address): " hostname
 fi
 
-# Ask for remote SMTP
-if [[ -z "${remotesmtp}" ]]; then
-    read -r -p "Do you want to send monitoring emails from a remote SMTP server (recommended) [Y/n]: " remotesmtp
-    remotesmtp=${remotesmtp:-y}
-    remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
+# Ask for monitoring email
+if [[ -z "${monitoringemails}" ]]; then
+  read -r -p "Do you want to receive monitoring emails from this machine? [Y/n]: " monitoringemails
+  remotesmtp=${monitoringemails:-y}
+  remotesmtp=$(echo "${monitoringemails}" | awk '{print tolower($0)}')
 
-    if [[ "${remotesmtp}" == 'y' ]]; then
-      # Ask SMTP hostname if not already set
-      if [[ -z "${smtphostname}" ]]; then
-          read -r -p "Enter your remote SMTP server hostname: " smtphostname
-      fi
+  # Ask email if not already set
+  if [[ -z "${email}" ]]; then
+      read -r -p "Enter your email: " email
+  fi
 
-      # Ask SMTP port if not already set
-      if [[ -z "${smtpport}" ]]; then
-          read -r -p "Enter your remote SMTP server port: " smtpport
-      fi
+  # Ask for remote SMTP
+  if [[ -z "${remotesmtp}" ]]; then
+      read -r -p "Send monitoring emails from a remote SMTP server instead of this machine? (recommended) [Y/n]: " remotesmtp
+      remotesmtp=${remotesmtp:-y}
+      remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
 
-      # Ask SMTP username if not already set
-      if [[ -z "${smtpusername}" ]]; then
-          read -r -p "Enter your remote SMTP server username: " smtpusername
-      fi
+      if [[ "${remotesmtp}" == 'y' ]]; then
+        # Ask SMTP hostname if not already set
+        if [[ -z "${smtphostname}" ]]; then
+            read -r -p "Enter your remote SMTP server hostname: " smtphostname
+        fi
 
-      # Ask SMTP username if not already set
-      if [[ -z "${smtppassword}" ]]; then
-          read -r -p "Enter your SMTP password: " smtppassword
+        # Ask SMTP port if not already set
+        if [[ -z "${smtpport}" ]]; then
+            read -r -p "Enter your remote SMTP server port: " smtpport
+        fi
+
+        # Ask SMTP username if not already set
+        if [[ -z "${smtpusername}" ]]; then
+            read -r -p "Enter your remote SMTP server username: " smtpusername
+        fi
+
+        # Ask SMTP username if not already set
+        if [[ -z "${smtppassword}" ]]; then
+            read -r -p "Enter your SMTP password: " smtppassword
+        fi
       fi
-    fi
+  fi
 fi
 
 ### Timezone
@@ -108,7 +120,7 @@ APT::Periodic::Download-Upgradeable-Packages \"1\";
 APT::Periodic::AutocleanInterval \"7\";" | sudo tee /etc/apt/apt.conf.d/10periodic > /dev/null
 
 # Install updates automatically
-echo "Unattended-Upgrade::Allowed-Origins {
+updateconfig="Unattended-Upgrade::Allowed-Origins {
   \"\${distro_id}:\${distro_codename}\";
   \"\${distro_id}:\${distro_codename}-security\";
   \"\${distro_id}ESMApps:\${distro_codename}-apps-security\";
@@ -116,20 +128,25 @@ echo "Unattended-Upgrade::Allowed-Origins {
   \"\${distro_id}:\${distro_codename}-updates\";
 };
 Unattended-Upgrade::DevRelease \"false\";
-Unattended-Upgrade::Mail \"${email}\";
-Unattended-Upgrade::MailOnlyOnError \"true\";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages \"true\";
 Unattended-Upgrade::Remove-Unused-Dependencies \"true\";
 Unattended-Upgrade::Automatic-Reboot \"true\";
-Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";" | sudo tee /etc/apt/apt.conf.d/50unattended-upgrades > /dev/null
+Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";"
+if [[ "${monitoringemails}" == 'y' ]]; then
+updateconfig+="
+Unattended-Upgrade::Mail \"${email}\";
+Unattended-Upgrade::MailOnlyOnError \"true\";"
+fi
+echo "${updateconfig}" | sudo tee /etc/apt/apt.conf.d/50unattended-upgrades > /dev/null
 
 ### Default umask
 
 # Change default system umask
 sudo sed -i'.backup' -E 's/UMASK(\s+)([0-9]+)/UMASK\1002/g' /etc/login.defs
 
-### Postfix
+### Postfix (optional)
 
+if [[ "${monitoringemails}" == 'y' && "${remotesmtp}" == 'y' ]]; then
 # Install
 sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
 
@@ -137,12 +154,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
 sudo cp /etc/postfix/main.cf /etc/postfix/.main.cf.backup
 sudo cp /etc/aliases /etc/.aliases.backup
 
-
-if [[ "${remotesmtp}" == 'y' ]]; then
 # Update main config file
 echo "# See /usr/share/postfix/main.cf.dist for a commented, more complete version
-
-
 # Debian specific:  Specifying a file name will cause the first
 # line of that file to be used as the name.  The Debian default
 # is /etc/mailname.
@@ -202,7 +215,6 @@ echo "/.+/    ${smtpusername}" | sudo tee /etc/postfix/sender_canonical_maps > /
 echo "/From:.*/ REPLACE From: ${smtpusername}" | sudo tee /etc/postfix/header_check > /dev/null
 sudo postmap /etc/postfix/sender_canonical_maps
 sudo postmap /etc/postfix/header_check
-fi
 
 # Forwarding System Mail to your email address
 echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
@@ -217,12 +229,13 @@ sudo service postfix restart
 postconf mail_version
 
 echo "Email monitoring is enabled for your machine: ${hostname}." | mail -s "Email monitoring is enabled." "${email}"
+fi
 
-### Apache web server (optional)
+### Apache web server & Cerbot (optional)
 
 # Ask for apache
 if [[ -z "${apache}" ]]; then
-    read -r -p "Do you want to install Apache webserver & other related utilities? [N/y]: " apache
+    read -r -p "Do you want to install Apache webserver & Cerbot? [N/y]: " apache
     php=${apache:-n}
     php=$(echo "${apache}" | awk '{print tolower($0)}')
 fi
@@ -289,10 +302,13 @@ sudo apt install -y fail2ban
 # Add default configuration
 fail2banconfig="[DEFAULT]
 findtime = 3600
-bantime = 86400
+bantime = 86400"
+if [[ "${monitoringemails}" == 'y' ]]; then
+fail2banconfig+="
 destemail = ${email}
-action = %(action_mwl)s
-
+action = %(action_mwl)s"
+fi
+fail2banconfig+="
 [sshd]
 enabled = true
 port = ssh
@@ -377,9 +393,9 @@ fail2ban-client -V
 
 # Ask for PHP/ environment
 if [[ -z "${php}" ]]; then
-    read -r -p "Do you want to install PHP environment? [N/y]: " php
-    php=${php:-n}
-    php=$(echo "${php}" | awk '{print tolower($0)}')
+  read -r -p "Do you want to install PHP environment? [N/y]: " php
+  php=${php:-n}
+  php=$(echo "${php}" | awk '{print tolower($0)}')
 fi
 
 if [[ "${php}" == 'y' ]]; then
@@ -414,8 +430,11 @@ if [[ "${php}" == 'y' ]]; then
   sudo rm "${phpinipath}.tmp"
 
   # Apply PHP configuration to Apache
-  sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
-  sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
+  if [[ "${apache}" == 'y' ]];
+  then
+    sudo cp /etc/php/7.3/apache2/php.ini /etc/php/7.3/apache2/.php.ini.backup
+    sudo cp "${phpinipath}" /etc/php/7.3/apache2/php.ini
+  fi
 
   # Add MariaDB official repository
   test -f /etc/apt/sources.list.d/mariadb.list || curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo -E bash
@@ -428,9 +447,9 @@ fi
 
 # Ask for NodeJS environment
 if [[ -z "${nodejs}" ]]; then
-    read -r -p "Do you want to install NodeJS environment? [N/y]: " nodejs
-    nodejs=${nodejs:-n}
-    nodejs=$(echo "${nodejs}" | awk '{print tolower($0)}')
+  read -r -p "Do you want to install NodeJS environment? [N/y]: " nodejs
+  nodejs=${nodejs:-n}
+  nodejs=$(echo "${nodejs}" | awk '{print tolower($0)}')
 fi
 
 if [[ "${nodejs}" == 'y' ]]; then
