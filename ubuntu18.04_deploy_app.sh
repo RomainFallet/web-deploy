@@ -6,187 +6,212 @@ set -e
 ### Set up variables
 
 # Ask app name if not already set
-if [[ -z "${appname}" ]]; then
-  read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
+if [[ -z "${appname}" ]]
+then
+read -r -p "Enter the name of your app without hyphens (eg. myawesomeapp): " appname
 fi
 
 # Ask for apphow if not already set
-if [[ -z "${apphow}" ]]; then
-  read -r -p "How do you want to deploy your app?
-    - With a domain name & an TSL certificate:  [1]
-    - Without a domain name with a local port:  [2]
-  Your choice: " apphow
+if [[ -z "${apphow}" ]]
+then
+read -r -p "How do you want to deploy your app?
+  - With a domain name & an TSL certificate:  [1]
+  - Without a domain name with a local port:  [2]
+Your choice: " apphow
 fi
 
 ### Domain name case
-if [[ $apphow == '1' ]]; then
-  # Ask email if not already set
-  if [[ -z "${email}" ]]; then
-      read -r -p "Enter your email (needed to request TLS certificate): " email
-  fi
+if [[ $apphow == '1' ]]
+then
 
-  # Ask domain name if not already set
-  if [[ -z "${appdomain}" ]]; then
-      read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
-  fi
+# Ask email if not already set
+if [[ -z "${email}" ]]
+then
+read -r -p "Enter your email (needed to request TLS certificate): " email
+fi
 
-  # Activate default conf
-  sudo a2ensite 000-default.conf
+# Ask domain name if not already set
+if [[ -z "${appdomain}" ]]
+then
+read -r -p "Enter the domain name on which you want your app to be served (eg. example.com or test.example.com): " appdomain
+fi
 
-  # Restart Apache to make changes available
-  sudo service apache2 restart
+# Activate default conf
+#sudo a2ensite 000-default.conf
 
-  # Get a new HTTPS certficate
-  sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
+# Restart Apache to make changes available
+#sudo service apache2 restart
 
-  # Disable default conf
-  sudo a2dissite 000-default.conf
+# Get a new HTTPS certficate
+#sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
 
-  # Apache TLS config
-  apacheconfig="<VirtualHost *:80>
-    # Set up server name
-    ServerName ${appdomain}
+# Disable default conf
+#sudo a2dissite 000-default.conf
 
-    # All we need to do here is redirect to HTTPS
-    RewriteEngine on
-    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
-  </VirtualHost>
+# Apache TLS config
+apacheconfig="<VirtualHost *:80>
+  # Set up server name
+  ServerName ${appdomain}
 
-  <VirtualHost *:443>
-    # Set up server name
-    ServerName ${appdomain}
+  # All we need to do here is redirect to HTTPS
+  RewriteEngine on
+  RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
 
-    # Configure separate log files
-    ErrorLog /var/log/apache2/${appname}.error.log
-    CustomLog /var/log/apache2/${appname}.access.log combined
+<VirtualHost *:443>
+  # Set up server name
+  ServerName ${appdomain}
 
-    # Configure HTTPS
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem"
+  # Configure separate log files
+  ErrorLog /var/log/apache2/${appname}.error.log
+  CustomLog /var/log/apache2/${appname}.access.log combined
+
+  # Configure HTTPS
+  SSLEngine on
+  SSLCertificateFile /etc/letsencrypt/live/${appdomain}/fullchain.pem
+  SSLCertificateKeyFile /etc/letsencrypt/live/${appdomain}/privkey.pem
+"
 fi
 
 ### Local port case
-if [[ $apphow == '2' ]]; then
-  # Ask localport if not already set
-  if [[ -z "${localport}" ]]; then
-      read -r -p "Define your app running port (eg. 3000): " localport
-  fi
+if [[ $apphow == '2' ]]
+then
 
-  # Apache local config
-  apacheconfig="<VirtualHost *:${localport}>
-    # Set up server name
-    ServerName ${appdomain}
+# Ask localport if not already set
+if [[ -z "${localport}" ]]
+then
+read -r -p "Define your app running port (eg. 3000): " localport
+fi
 
-    # Configure separate log files
-    ErrorLog /var/log/apache2/${appname}.error.log
-    CustomLog /var/log/apache2/${appname}.access.log combined"
+# Apache local config
+apacheconfig="<VirtualHost *:${localport}>
+  # Set up server name
+  ServerName ${appdomain}
+
+  # Configure separate log files
+  ErrorLog /var/log/apache2/${appname}.error.log
+  CustomLog /var/log/apache2/${appname}.access.log combined
+"
 fi
 
 # Ask for apptype if not already set
-if [[ -z "${apptype}" ]]; then
-  read -r -p "Which type of app do you want to deploy?
-    - Proxy to an existing app: [1]
-    - HTML/JS/ReactJS/Angular:  [2]
-    - NodeJS/NestJS:            [3]
-    - PHP/Symfony:              [4]
-    - PHP/Nextcloud:            [5]
-  Your choice: " apptype
+if [[ -z "${apptype}" ]]
+then
+read -r -p "Which type of app do you want to deploy?
+  - Proxy to an existing app: [1]
+  - HTML/JS/ReactJS/Angular:  [2]
+  - NodeJS/NestJS:            [3]
+  - PHP/Symfony:              [4]
+  - PHP/Nextcloud:            [5]
+Your choice: " apptype
 fi
 
 ### Proxy case
-if [[ "${apptype}" == '1' || "${apptype}" == '3' ]]; then
-  # Ask proxyport if not already set
-  if [[ -z "${proxyport}" ]]; then
-      read -r -p "Enter the local port to proxy your requests to (eg. 3100): " proxyport
-  fi
+if [[ "${apptype}" == '1' || "${apptype}" == '3' ]]
+then
 
-  # Apache proxy config
-  apacheconfig+="
-    # Proxy all requests
-    ProxyPass / http://127.0.01:${proxyport}/"
+# Ask proxyport if not already set
+if [[ -z "${proxyport}" ]]
+then
+  read -r -p "Enter the local port to proxy your requests to (eg. 3100): " proxyport
+fi
+
+# Apache proxy config
+apacheconfig+="
+  # Proxy all requests
+  ProxyPass / http://127.0.01:${proxyport}/
+"
 fi
 
 # Serving case
-if [[ "${apptype}" == '2' || "${apptype}" == '4' || "${apptype}" == '5' ]]; then
-  # Create the app directory
-  sudo mkdir -p "/var/www/${appname}"
+if [[ "${apptype}" == '2' || "${apptype}" == '4' || "${apptype}" == '5' ]]
+then
+# Create the app directory
+sudo mkdir -p "/var/www/${appname}"
 
-  # Set ownership to Apache
-  sudo chown www-data:www-data "/var/www/${appname}"
+# Set ownership to Apache
+sudo chown www-data:www-data "/var/www/${appname}"
 
-  # Apache document root config
-  apacheconfig+="
-    # Set up document root
-    DocumentRoot /var/www/${appname}"
+# Apache document root config
+apacheconfig+="
+  # Set up document root
+  DocumentRoot /var/www/${appname}
+"
 fi
 
 ### HTML/JS/React/Angular case
-if [[ "${apptype}" == '2' ]]; then
-  apacheconfig+="
-    # Set up HTML/JS/React/Angular specific configuration
-    <Directory />
-        Require all denied
-    </Directory>
-    <Directory /var/www/${appname}>
-        Require all granted
-        RewriteEngine on
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteRule ^ index.html [QSA,L]
-    </Directory>"
+if [[ "${apptype}" == '2' ]]
+then
+apacheconfig+="
+  # Set up HTML/JS/React/Angular specific configuration
+  <Directory />
+      Require all denied
+  </Directory>
+  <Directory /var/www/${appname}>
+      Require all granted
+      RewriteEngine on
+      RewriteCond %{REQUEST_FILENAME} !-f
+      RewriteRule ^ index.html [QSA,L]
+  </Directory>
+"
 fi
 
 ### HTML/JS/React/Angular case
-if [[ "${apptype}" == '3' ]]; then
-  apacheconfig+="
-    # Set up NodeJS/NestJS specific configuration
-    <Directory />
-        Require all denied
-    </Directory>
+if [[ "${apptype}" == '3' ]]
+then
+apacheconfig+="
+  # Set up NodeJS/NestJS specific configuration
+  <Directory />
+      Require all denied
+  </Directory>
 
-    # Allow CORS requests
-    Header set Access-Control-Allow-Origin '*'"
+  # Allow CORS requests
+  Header set Access-Control-Allow-Origin '*'
+"
 fi
 
 ### PHP/Nextcloud
-if [[ "${apptype}" == '4' ]]; then
-  apacheconfig+="
-    # Set up PHP/Nextcloud specific configuration
-    <Directory />
-        Require all denied
-    </Directory>
-    <Directory /var/www/${appname}>
-        Require all granted
-        AllowOverride All
-        Options FollowSymLinks MultiViews
-        php_admin_value open_basedir '/var/www/${appname}'
-    </Directory>
-    <IfModule mod_dav.c>
-      Dav off
-    </IfModule>"
+if [[ "${apptype}" == '4' ]]
+then
+apacheconfig+="
+  # Set up PHP/Nextcloud specific configuration
+  <Directory />
+      Require all denied
+  </Directory>
+  <Directory /var/www/${appname}>
+      Require all granted
+      AllowOverride All
+      Options FollowSymLinks MultiViews
+      php_admin_value open_basedir '/var/www/${appname}'
+  </Directory>
+  <IfModule mod_dav.c>
+    Dav off
+  </IfModule>
+"
 fi
 
 ### PHP/Symfony case
-if [[ "${apptype}" == '5' ]]; then
-  apacheconfig+="
-    # Set up PHP/Symfony specific configuration
-    <Directory />
-        Require all denied
-    </Directory>
-    <Directory /var/www/${appname}/public>
-        Require all granted
-        php_admin_value open_basedir '/var/www/${appname}'
-        php_admin_value upload_tmp_dir '/var/www/${appname}/tmp'
-        FallbackResource /index.php
-    </Directory>
-    <Directory /var/www/${appname}/public/bundles>
-        FallbackResource disabled
-    </Directory>"
+if [[ "${apptype}" == '5' ]]
+then
+apacheconfig+="
+  # Set up PHP/Symfony specific configuration
+  <Directory />
+      Require all denied
+  </Directory>
+  <Directory /var/www/${appname}/public>
+      Require all granted
+      php_admin_value open_basedir '/var/www/${appname}'
+      php_admin_value upload_tmp_dir '/var/www/${appname}/tmp'
+      FallbackResource /index.php
+  </Directory>
+  <Directory /var/www/${appname}/public/bundles>
+      FallbackResource disabled
+  </Directory>
+"
 fi
 
 ### Set up Apache config
-apacheconfig+="
-</VirtualHost>"
+apacheconfig+="</VirtualHost>"
 echo "${apacheconfig}" | sudo tee "/etc/apache2/sites-available/${appname}.conf" > /dev/null
 
 # Restart Apache to make changes available
@@ -194,16 +219,19 @@ sudo service apache2 restart
 
 ### Set up database
 
-if [[ "${apptype}" == '3' || "${apptype}" == '4' || "${apptype}" == '5' ]]; then
-  # Ask database password
-  if [[ -z "${mysqlpassword}" ]]; then
-      read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
-  fi
+if [[ "${apptype}" == '3' || "${apptype}" == '4' || "${apptype}" == '5' ]]
+then
 
-  # Create database and related user for the app and grant permissions
-  sudo mysql -e "CREATE DATABASE ${appname};
-  CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
-  GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
+# Ask database password
+if [[ -z "${mysqlpassword}" ]]
+then
+read -r -p "Enter the database password you want for your app (save it in a safe place): " mysqlpassword
+fi
+
+# Create database and related user for the app and grant permissions
+sudo mysql -e "CREATE DATABASE ${appname};
+CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
 fi
 
 ### Create a new SSH user for the app
