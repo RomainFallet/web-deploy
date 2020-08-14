@@ -14,7 +14,7 @@ fi
 if [[ -z "${apphow}" ]]; then
   read -r -p "How do you want to deploy your app?
     - With a domain name & an TSL certificate:  [1]
-    - Without a domain name with a local port: [2]
+    - Without a domain name with a local port:  [2]
   Your choice: " apphow
 fi
 
