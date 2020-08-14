@@ -148,32 +148,9 @@ This will install all softwares needed to host production apps.
 
 ### Configure a new app
 
-#### HTML/JS/React/Angular
-
 ```bash
 # Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_htmljsreactangular_app.sh)"
-```
-
-#### NodeJS/NestJS
-
-```bash
-# Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_nodejsnestjs_app.sh)"
-```
-
-#### PHP/Symfony
-
-```bash
-# Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_phpsymfony_app.sh)"
-```
-
-#### PHP/Nextcloud
-
-```bash
-# Get and execute script directly
-bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_phpnextcloud_app.sh)"
+bash -c "$(wget --no-cache -O- https://raw.githubusercontent.com/RomainFallet/web-deploy/master/ubuntu18.04_deploy_app.sh)"
 ```
 
 #### Connecting to your app
