@@ -37,16 +37,16 @@ read -r -p "Enter the domain name on which you want your app to be served (eg. e
 fi
 
 # Activate default conf
-#sudo a2ensite 000-default.conf
+sudo a2ensite 000-default.conf
 
 # Restart Apache to make changes available
-#sudo service apache2 restart
+sudo service apache2 restart
 
 # Get a new HTTPS certficate
-#sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
+sudo certbot certonly --webroot -w "/var/www/html" -d "${appdomain}" -m "${email}" -n --agree-tos
 
 # Disable default conf
-#sudo a2dissite 000-default.conf
+sudo a2dissite 000-default.conf
 
 # Apache TLS config
 apacheconfig="<VirtualHost *:80>
@@ -113,7 +113,7 @@ then
 # Ask proxyport if not already set
 if [[ -z "${proxyport}" ]]
 then
-  read -r -p "Enter the local port to proxy your requests to (eg. 3100): " proxyport
+read -r -p "Enter the local port to proxy your requests to (eg. 3100): " proxyport
 fi
 
 # Apache proxy config
@@ -217,6 +217,40 @@ echo "${apacheconfig}" | sudo tee "/etc/apache2/sites-available/${appname}.conf"
 # Restart Apache to make changes available
 sudo service apache2 restart
 
+###
+
+if [[ "${apphow}" == '2' && -n "${localport}" ]]
+then
+
+read -r -p "Do you want to set up an SSH reverse tunnel to access this app from outside? [N/y]: " sshreversetunnel
+sshreversetunnel=${sshreversetunnel:-n}
+sshreversetunnel=$(echo "${sshreversetunnel}" | awk '{print tolower($0)}')
+
+if [[ "${sshreversetunnel}" == 'y' ]]
+then
+
+read -r -p "Enter your SSH login username: " sshreverseuser
+read -r -p "Enter your SSH login host: " sshreversehost
+read -r -p "Enter your SSH login port: " sshreverseport
+read -r -p "Enter the port on the remote machine that will be used to access this app: " sshreverseremoteport
+
+autosshconfig="[Unit]
+Description=AutoSSH tunnel service for ${appname} on port ${localport}
+After=network-online.target
+
+[Service]
+Environment=\"AUTOSSH_GATETIME=0\"
+ExecStart=/usr/bin/autossh -NC -M 0 -o \"ServerAliveInterval 30\" -o \"ServerAliveCountMax 3\" -o \"PubkeyAuthentication=yes\" -o \"PasswordAuthentication=no\" -i ~/.ssh/id_rsa -p ${sshreverseport} -R ${localport}:127.0.0.1:${sshreverseremoteport} ${sshreverseuser}@${sshreversehost}
+
+[Install]
+WantedBy=multi-user.target"
+
+echo "${autosshconfig}" | sudo see "/etc/systemd/system/autossh-${appname}.service" > /dev/null
+
+fi
+
+fi
+
 ### Set up database
 
 if [[ "${apptype}" == '3' || "${apptype}" == '4' || "${apptype}" == '5' ]]
@@ -229,13 +263,14 @@ read -r -p "Enter the database password you want for your app (save it in a safe
 fi
 
 # Create database and related user for the app and grant permissions
-sudo mysql -e "CREATE DATABASE ${appname};
-CREATE USER ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${appname};
+CREATE USER IF NOT EXISTS ${appname}@localhost IDENTIFIED BY '${mysqlpassword}';
 GRANT ALL ON ${appname}.* TO ${appname}@localhost;"
 fi
 
 ### Create a new SSH user for the app
-
+if ! id -u "${appname}" > /dev/null
+then
 # Generate a new password
 sshpassword=$(openssl rand -hex 15)
 
@@ -244,12 +279,13 @@ sshencryptedpassword=$(echo "${sshpassword}" | openssl passwd -crypt -stdin)
 
 # Create the user and set the default shell
 sudo useradd -m -p "${sshencryptedpassword}" -s /bin/bash "${appname}"
-
-# Give ownership to the user
-sudo chown -R "${appname}:www-data" "/var/www/${appname}"
+fi
 
 # Give Apache group to the user (so that Apache can still access his files)
 sudo usermod -g www-data "${appname}"
+
+# Give ownership to the user
+sudo chown -R "${appname}:www-data" "/var/www/${appname}"
 
 # Create SSH folder in the user home
 sudo mkdir -p "/home/${appname}/.ssh"
@@ -269,4 +305,8 @@ sudo username="${appname}" use_basic_commands=n bash -c "$(wget --no-cache -O- h
 sudo mount --bind "/var/www/${appname}" "/home/jails/${appname}/home/${appname}"
 
 # Make the mount permanent
-echo "/var/www/${appname} /home/jails/${appname}/home/${appname} none rw,bind 0 0" | sudo tee -a /etc/fstab > /dev/null
+mountconfig="/var/www/${appname} /home/jails/${appname}/home/${appname} none rw,bind 0 0"
+if ! grep "${mountconfig}" /etc/fstab > /dev/null
+then
+echo "${mountconfig}" | sudo tee -a /etc/fstab > /dev/null
+fi
