@@ -104,7 +104,7 @@ ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/id_rsa
 Then add it to your machine by using:
 
 ```bash
-ssh <yourUserName>@<yourIpAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee -a ~/.ssh/authorized_keys > /dev/null && chmod 400 ~/.ssh/id_rsa*"
+ssh <yourUserName>@<yourIpAddress> "echo '$(cat ~/.ssh/id_rsa.pub)' | tee -a ~/.ssh/authorized_keys > /dev/null"
 ```
 
 ### Point your domain names to your machine IP address

@@ -5,11 +5,6 @@ set -e
 
 ### Set up variables
 
-# Ask email if not already set
-if [[ -z "${email}" ]]; then
-    read -r -p "Enter your email (needed to set up email monitoring): " email
-fi
-
 # Ask hostname if not already set
 if [[ -z "${hostname}" ]]; then
     read -r -p "Enter your hostname (it must be a domain name pointing to this machine IP address): " hostname
