@@ -23,31 +23,31 @@ if [[ -z "${monitoringemails}" ]]; then
 
   # Ask for remote SMTP
   if [[ -z "${remotesmtp}" ]]; then
-      read -r -p "Send monitoring emails from a remote SMTP server instead of this machine? (recommended) [Y/n]: " remotesmtp
-      remotesmtp=${remotesmtp:-y}
-      remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
+    read -r -p "Send monitoring emails from a remote SMTP server instead of this machine? (recommended) [Y/n]: " remotesmtp
+    remotesmtp=${remotesmtp:-y}
+    remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
 
-      if [[ "${remotesmtp}" == 'y' ]]; then
-        # Ask SMTP hostname if not already set
-        if [[ -z "${smtphostname}" ]]; then
-            read -r -p "Enter your remote SMTP server hostname: " smtphostname
-        fi
-
-        # Ask SMTP port if not already set
-        if [[ -z "${smtpport}" ]]; then
-            read -r -p "Enter your remote SMTP server port: " smtpport
-        fi
-
-        # Ask SMTP username if not already set
-        if [[ -z "${smtpusername}" ]]; then
-            read -r -p "Enter your remote SMTP server username: " smtpusername
-        fi
-
-        # Ask SMTP username if not already set
-        if [[ -z "${smtppassword}" ]]; then
-            read -r -p "Enter your SMTP password: " smtppassword
-        fi
+    if [[ "${remotesmtp}" == 'y' ]]; then
+      # Ask SMTP hostname if not already set
+      if [[ -z "${smtphostname}" ]]; then
+          read -r -p "Enter your remote SMTP server hostname: " smtphostname
       fi
+
+      # Ask SMTP port if not already set
+      if [[ -z "${smtpport}" ]]; then
+          read -r -p "Enter your remote SMTP server port: " smtpport
+      fi
+
+      # Ask SMTP username if not already set
+      if [[ -z "${smtpusername}" ]]; then
+          read -r -p "Enter your remote SMTP server username: " smtpusername
+      fi
+
+      # Ask SMTP username if not already set
+      if [[ -z "${smtppassword}" ]]; then
+          read -r -p "Enter your SMTP password: " smtppassword
+      fi
+    fi
   fi
 fi
 
