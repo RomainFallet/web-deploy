@@ -6,49 +6,60 @@ set -e
 ### Set up variables
 
 # Ask hostname if not already set
-if [[ -z "${hostname}" ]]; then
-    read -r -p "Enter your hostname (it must be a domain name pointing to this machine IP address): " hostname
+if [[ -z "${hostname}" ]]
+then
+  read -r -p "Enter your hostname (it must be a domain name pointing to this machine IP address): " hostname
 fi
 
 # Ask for monitoring email
-if [[ -z "${monitoringemails}" ]]; then
+if [[ -z "${monitoringemails}" ]]
+then
   read -r -p "Do you want to receive monitoring emails from this machine? [Y/n]: " monitoringemails
   remotesmtp=${monitoringemails:-y}
   remotesmtp=$(echo "${monitoringemails}" | awk '{print tolower($0)}')
+fi
 
+if [[ "${monitoringemails}" == 'y' ]]
+then
   # Ask email if not already set
-  if [[ -z "${email}" ]]; then
-      read -r -p "Enter your email: " email
+  if [[ -z "${email}" ]]
+  then
+    read -r -p "Enter your email: " email
   fi
 
+
   # Ask for remote SMTP
-  if [[ -z "${remotesmtp}" ]]; then
+  if [[ -z "${remotesmtp}" ]]
+  then
     read -r -p "Send monitoring emails from a remote SMTP server instead of this machine? (recommended) [Y/n]: " remotesmtp
     remotesmtp=${remotesmtp:-y}
     remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
-    echo 'coucou'
-    exit
+  fi
 
-    if [[ "${remotesmtp}" == 'y' ]]; then
-      # Ask SMTP hostname if not already set
-      if [[ -z "${smtphostname}" ]]; then
-          read -r -p "Enter your remote SMTP server hostname: " smtphostname
-      fi
+  if [[ "${remotesmtp}" == 'y' ]]
+  then
+    # Ask SMTP hostname if not already set
+    if [[ -z "${smtphostname}" ]]
+    then
+    read -r -p "Enter your remote SMTP server hostname: " smtphostname
+    fi
 
-      # Ask SMTP port if not already set
-      if [[ -z "${smtpport}" ]]; then
-          read -r -p "Enter your remote SMTP server port: " smtpport
-      fi
+    # Ask SMTP port if not already set
+    if [[ -z "${smtpport}" ]]
+    then
+    read -r -p "Enter your remote SMTP server port: " smtpport
+    fi
 
-      # Ask SMTP username if not already set
-      if [[ -z "${smtpusername}" ]]; then
-          read -r -p "Enter your remote SMTP server username: " smtpusername
-      fi
+    # Ask SMTP username if not already set
+    if [[ -z "${smtpusername}" ]]
+    then
+    read -r -p "Enter your remote SMTP server username: " smtpusername
+    fi
 
-      # Ask SMTP username if not already set
-      if [[ -z "${smtppassword}" ]]; then
-          read -r -p "Enter your SMTP password: " smtppassword
-      fi
+    # Ask SMTP username if not already set
+    if [[ -z "${smtppassword}" ]]
+    then
+    read -r -p "Enter your SMTP password: " smtppassword
     fi
   fi
 fi
@@ -129,7 +140,8 @@ Unattended-Upgrade::Remove-Unused-Kernel-Packages \"true\";
 Unattended-Upgrade::Remove-Unused-Dependencies \"true\";
 Unattended-Upgrade::Automatic-Reboot \"true\";
 Unattended-Upgrade::Automatic-Reboot-Time \"05:00\";"
-if [[ "${monitoringemails}" == 'y' ]]; then
+if [[ "${monitoringemails}" == 'y' ]]
+then
 updateconfig+="
 Unattended-Upgrade::Mail \"${email}\";
 Unattended-Upgrade::MailOnlyOnError \"true\";"
@@ -143,16 +155,17 @@ sudo sed -i'.backup' -E 's/UMASK(\s+)([0-9]+)/UMASK\1002/g' /etc/login.defs
 
 ### Postfix (optional)
 
-if [[ "${monitoringemails}" == 'y' && "${remotesmtp}" == 'y' ]]; then
-# Install
-sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
+if [[ "${monitoringemails}" == 'y' && "${remotesmtp}" == 'y' ]]
+then
+  # Install
+  sudo DEBIAN_FRONTEND=noninteractive apt install -y postfix mailutils
 
-# Make a backup of the config files
-sudo cp /etc/postfix/main.cf /etc/postfix/.main.cf.backup
-sudo cp /etc/aliases /etc/.aliases.backup
+  # Make a backup of the config files
+  sudo cp /etc/postfix/main.cf /etc/postfix/.main.cf.backup
+  sudo cp /etc/aliases /etc/.aliases.backup
 
-# Update main config file
-echo "# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+  # Update main config file
+  echo "# See /usr/share/postfix/main.cf.dist for a commented, more complete version
 # Debian specific:  Specifying a file name will cause the first
 # line of that file to be used as the name.  The Debian default
 # is /etc/mailname.
@@ -201,84 +214,86 @@ sender_canonical_classes = envelope_sender, header_sender
 sender_canonical_maps =  regexp:/etc/postfix/sender_canonical_maps
 smtp_header_checks = regexp:/etc/postfix/header_check" | sudo tee /etc/postfix/main.cf > /dev/null
 
-# Save SMTP credentials
-echo "[${smtphostname}]:${smtpport} ${smtpusername}:${smtppassword}" | sudo tee /etc/postfix/sasl_passwd > /dev/null
-sudo postmap /etc/postfix/sasl_passwd
-sudo chown root:root /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
-sudo chmod 0600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+  # Save SMTP credentials
+  echo "[${smtphostname}]:${smtpport} ${smtpusername}:${smtppassword}" | sudo tee /etc/postfix/sasl_passwd > /dev/null
+  sudo postmap /etc/postfix/sasl_passwd
+  sudo chown root:root /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+  sudo chmod 0600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
 
-# Remap sender address
-echo "/.+/    ${smtpusername}" | sudo tee /etc/postfix/sender_canonical_maps > /dev/null
-echo "/From:.*/ REPLACE From: ${smtpusername}" | sudo tee /etc/postfix/header_check > /dev/null
-sudo postmap /etc/postfix/sender_canonical_maps
-sudo postmap /etc/postfix/header_check
+  # Remap sender address
+  echo "/.+/    ${smtpusername}" | sudo tee /etc/postfix/sender_canonical_maps > /dev/null
+  echo "/From:.*/ REPLACE From: ${smtpusername}" | sudo tee /etc/postfix/header_check > /dev/null
+  sudo postmap /etc/postfix/sender_canonical_maps
+  sudo postmap /etc/postfix/header_check
 
-# Forwarding System Mail to your email address
-echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
+  # Forwarding System Mail to your email address
+  echo "root:     ${email}" | sudo tee -a /etc/aliases > /dev/null
 
-# Enable aliases
-sudo newaliases
+  # Enable aliases
+  sudo newaliases
 
-# Restart Postfix
-sudo service postfix restart
+  # Restart Postfix
+  sudo service postfix restart
 
-# Display Postfix version
-postconf mail_version
+  # Display Postfix version
+  postconf mail_version
 
-echo "Email monitoring is enabled for your machine: ${hostname}." | mail -s "Email monitoring is enabled." "${email}"
+  echo "Email monitoring is enabled for your machine: ${hostname}." | mail -s "Email monitoring is enabled." "${email}"
 fi
 
 ### Apache web server & Cerbot (optional)
 
 # Ask for apache
-if [[ -z "${apache}" ]]; then
-    read -r -p "Do you want to install Apache webserver & Cerbot? [N/y]: " apache
-    php=${apache:-n}
-    php=$(echo "${apache}" | awk '{print tolower($0)}')
-fi
-
-if [[ "${apache}" == 'y' ]]; then
-# Install
-sudo apt install -y apache2
-
-# Enable modules
-sudo a2enmod ssl
-sudo a2enmod rewrite
-sudo a2enmod proxy
-sudo a2enmod proxy_http
-sudo a2enmod headers
-
-# Set umask of the Apache user
-umaskconfig='umask 002'
-if ! sudo grep "^${umaskconfig}" /etc/apache2/envvars > /dev/null
+if [[ -z "${apache}" ]]
 then
-  echo "${umaskconfig}" | sudo tee -a /etc/apache2/envvars > /dev/null
+  read -r -p "Do you want to install Apache webserver & Cerbot? [N/y]: " apache
+  apache=${apache:-n}
+  apache=$(echo "${apache}" | awk '{print tolower($0)}')
 fi
 
-# Disable default site
-sudo a2dissite 000-default.conf
+if [[ "${apache}" == 'y' ]]
+then
+  # Install
+  sudo apt install -y apache2
 
-# Restart Apache
-sudo service apache2 restart
+  # Enable modules
+  sudo a2enmod ssl
+  sudo a2enmod rewrite
+  sudo a2enmod proxy
+  sudo a2enmod proxy_http
+  sudo a2enmod headers
 
-apache2 -v
-sudo apache2ctl -M
+  # Set umask of the Apache user
+  umaskconfig='umask 002'
+  if ! sudo grep "^${umaskconfig}" /etc/apache2/envvars > /dev/null
+  then
+    echo "${umaskconfig}" | sudo tee -a /etc/apache2/envvars > /dev/null
+  fi
 
-### Certbot
+  # Disable default site
+  sudo a2dissite 000-default.conf
 
-# Add Certbot official repositories
-sudo add-apt-repository universe
-sudo add-apt-repository -y ppa:certbot/certbot
+  # Restart Apache
+  sudo service apache2 restart
 
-# Install
-sudo apt install -y certbot
+  apache2 -v
+  sudo apache2ctl -M
 
-# Check certificates renewal every month
-echo '#!/bin/bash
-certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
-sudo chmod +x /etc/cron.monthly/certbot-renew.sh
+  ### Certbot
 
-certbot --version
+  # Add Certbot official repositories
+  sudo add-apt-repository universe
+  sudo add-apt-repository -y ppa:certbot/certbot
+
+  # Install
+  sudo apt install -y certbot
+
+  # Check certificates renewal every month
+  echo '#!/bin/bash
+  certbot renew' | sudo tee /etc/cron.monthly/certbot-renew.sh > /dev/null
+  sudo chmod +x /etc/cron.monthly/certbot-renew.sh
+
+  certbot --version
 fi
 
 ### Firewall
@@ -301,7 +316,7 @@ fail2banconfig="[DEFAULT]
 findtime = 3600
 bantime = 86400"
 if [[ "${monitoringemails}" == 'y' ]]; then
-fail2banconfig+="
+  fail2banconfig+="
 destemail = ${email}
 action = %(action_mwl)s"
 fi
@@ -321,8 +336,9 @@ logpath  = /var/log/mail.log
 maxretry = 5
 "
 
-if [[ "${apache}" == 'y' ]]; then
-fail2banconfig+="
+if [[ "${apache}" == 'y' ]]
+then
+  fail2banconfig+="
 [apache]
 enabled  = true
 port     = http,https
