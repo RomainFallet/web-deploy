@@ -26,6 +26,8 @@ if [[ -z "${monitoringemails}" ]]; then
     read -r -p "Send monitoring emails from a remote SMTP server instead of this machine? (recommended) [Y/n]: " remotesmtp
     remotesmtp=${remotesmtp:-y}
     remotesmtp=$(echo "${remotesmtp}" | awk '{print tolower($0)}')
+    echo 'coucou'
+    exit
 
     if [[ "${remotesmtp}" == 'y' ]]; then
       # Ask SMTP hostname if not already set
